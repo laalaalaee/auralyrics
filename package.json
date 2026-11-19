@@ -1,0 +1,31 @@
+{
+  "name": "glowrim",
+  "version": "1.1.0",
+  "description": "Ambient screen-edge glow and synced full-screen lyrics for Windows",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "local.glowrim",
+    "productName": "Glowrim",
+    "files": ["**/*", "!dist/**", "!dev-gallery.html"],
+    "asarUnpack": ["media.ps1"],
+    "win": { "target": ["nsis", "portable"], "signAndEditExecutable": false },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "shortcutName": "Glowrim",
+      "artifactName": "Glowrim-Setup-${version}.exe"
+    },
+    "portable": { "artifactName": "Glowrim-${version}-portable.exe" }
+  }
+}
