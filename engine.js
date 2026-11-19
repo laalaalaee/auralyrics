@@ -75,6 +75,18 @@
 
   const SF = ['Market St', 'Valencia St', 'Hayes St', 'The Embarcadero', 'Lombard St', 'Mission St', 'Castro St', 'Haight St', 'Divisadero St',
     'Columbus Ave', 'Geary Blvd', 'Fillmore St', 'Grant Ave', 'Polk St', 'Folsom St', 'Dolores St', 'Bay St', 'Fulton St', 'Van Ness Ave', 'Clement St'];
+  const PLACES = ['Brooklyn Bridge, New York', 'Marina Bay, Singapore', 'Shibuya Crossing, Tokyo', 'Shoreditch, London', 'Le Marais, Paris',
+    'Venice Beach, Los Angeles', 'Gangnam, Seoul', 'Kreuzberg, Berlin', 'Bandra, Mumbai', 'Copacabana, Rio de Janeiro', 'Dhanmondi, Dhaka',
+    'Downtown, Dubai', 'Navigli, Milan', 'Bondi Beach, Sydney', 'Kensington Market, Toronto'];
+  // A tiny stylised street map for the Maps cards.
+  function miniMap(R) {
+    let s = `<svg viewBox="0 0 300 110" preserveAspectRatio="xMidYMid slice"><rect width="300" height="110" fill="#26332b"/>`;
+    s += `<path d="M0,${70 + R() * 30} C80,${50 + R() * 40} 180,${90 + R() * 20} 300,${60 + R() * 30} L300,110 L0,110Z" fill="#1d3a55"/>`;
+    for (let k = 0; k < 3; k++) s += `<rect x="${R() * 260}" y="${R() * 60}" width="${30 + R() * 50}" height="${18 + R() * 24}" rx="5" fill="#2f4a33"/>`;
+    for (let k = 0; k < 7; k++) { const x = R() * 300; s += `<line x1="${x}" y1="-10" x2="${x + (R() - .5) * 120}" y2="120" stroke="#4a5560" stroke-width="${R() > .7 ? 4 : 2}"/>`; }
+    for (let k = 0; k < 4; k++) { const y = R() * 110; s += `<line x1="-10" y1="${y}" x2="310" y2="${y + (R() - .5) * 60}" stroke="#4a5560" stroke-width="2"/>`; }
+    return s + `<circle cx="150" cy="52" r="14" fill="#5e5ce6" opacity=".35"/><circle cx="150" cy="52" r="7" fill="#5e5ce6" stroke="#fff" stroke-width="2.5"/></svg>`;
+  }
   const PEOPLE = ['Maya', 'Jordan', 'Ava', 'Leo', 'Nina', 'Theo', 'Zara', 'Kai', 'Iris', 'Omar', 'Luca', 'Ruby'];
   const APPS = [['Messages', '💬', '#34c759'], ['Mail', '✉️', '#0a84ff'], ['Calendar', '📅', '#ff3b30'], ['Photos', '🌸', '#ff9f0a'],
     ['Music', '🎵', '#ff2d55'], ['Reminders', '✅', '#5e5ce6'], ['Weather', '⛅', '#32ade6'], ['Notes', '📝', '#ffcc00']];
@@ -243,9 +255,17 @@
     line(c) { const th = c.root.querySelector('.th'); if (c.jump) th.innerHTML = '';
       th.querySelector('.typing')?.remove(); th.querySelector('.dl')?.remove();
       th.querySelectorAll('.bb').forEach(b => b.classList.remove('tail'));
-      if (c.line && c.line.text) { const b = el('div', 'bb me tail', wordsHTML(c.ws)); th.appendChild(b); th.appendChild(el('div', 'dl', 'Delivered')); }
+      if (c.line && c.line.text) {
+        // Mix: most lines are bubbles; some arrive as a shared Maps location card.
+        const R = rng(hash(c.line.text + c.i)), prev = th.lastElementChild;
+        const asMap = c.i > 0 && c.line.text.length > 14 && R() < 0.24 && !(prev && prev.classList.contains('mcard'));
+        const b = asMap
+          ? el('div', 'mcard lit', `<div class="mm">${miniMap(R)}<span>⊙ Maps</span></div><div class="mb"><b>${wordsHTML(c.ws)}</b><small>⤴ ${PLACES[Math.floor(R() * PLACES.length)]}</small></div>`)
+          : el('div', 'bb me tail lit', wordsHTML(c.ws));
+        th.appendChild(b); th.appendChild(el('div', 'dl', 'Delivered'));
+      }
       while (th.children.length > 8) th.firstChild.remove(); },
-    frame(c) { const th = c.root.querySelector('.th'), mine = th.querySelectorAll('.bb.me'), b = mine[mine.length - 1]; if (b) light(b, c.ws, c.p);
+    frame(c) { const th = c.root.querySelector('.th'), mine = th.querySelectorAll('.lit'), b = mine[mine.length - 1]; if (b) light(b, c.ws, c.p);
       const gap = c.next ? c.next.t - c.p : 0, since = c.line ? c.p - c.line.t : c.p;
       const want = c.playing && c.next && gap > 900 && since > 1800 && c.next.t - (c.line ? c.line.t : 0) > 3500, has = th.querySelector('.typing');
       if (want && !has) th.appendChild(el('div', 'bb them typing', '<i></i><i></i><i></i>')); if (!want && has) has.remove(); }

@@ -140,6 +140,12 @@
 .st-messages .typing { display: flex; gap: .25em; padding: .65em .8em }
 .st-messages .typing i { width: .45em; height: .45em; border-radius: 50%; background: #8e8e93; animation: dot 1.2s infinite }
 .st-messages .typing i:nth-child(2) { animation-delay: .18s } .st-messages .typing i:nth-child(3) { animation-delay: .36s }
+.st-messages .mcard { align-self: flex-end; width: min(80%, 15em); border-radius: 1.1em; overflow: hidden; background: #1c1c1e; color: #fff;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.06); animation: msgin .4s cubic-bezier(.2,1.3,.4,1) both; transform-origin: right bottom }
+.st-messages .mcard .mm { position: relative; height: 4.6em } .st-messages .mcard .mm svg { width: 100%; height: 100%; display: block }
+.st-messages .mcard .mm span { position: absolute; left: .6em; bottom: .4em; font-size: .7em; font-weight: 600; text-shadow: 0 1px 4px #000 }
+.st-messages .mcard .mb { padding: .5em .8em .6em } .st-messages .mcard .mb b { display: block; font-size: 1.05em; line-height: 1.2 }
+.st-messages .mcard .mb small { display: block; color: #8e8e93; font-size: .75em; margin-top: .2em }
 .st-messages .dl { align-self: flex-end; font-size: .7em; color: #8e8e93; margin-top: -.1em }
 @keyframes msgin { from { opacity: 0; transform: translateY(.8em) scale(.85) } to { opacity: 1; transform: none } }
 @keyframes dot { 0%, 60%, 100% { opacity: .3; transform: translateY(0) } 30% { opacity: 1; transform: translateY(-.25em) } }
