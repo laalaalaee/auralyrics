@@ -7,79 +7,80 @@
   html,body{margin:0;height:100%;overflow:hidden;background:#000;color:#fff;font-family:'Segoe UI Variable Display','Segoe UI',sans-serif;user-select:none}
   :root{transition:--c1 1.4s,--c2 1.4s}
   body.idle{cursor:none}
-  button{font:inherit;color:inherit}
+  button,select{font:inherit;color:inherit}
   /* background */
   #bg{position:absolute;inset:-10%;background:center/cover;filter:blur(80px) saturate(1.5) brightness(.55);transform:scale(1.1);transition:opacity 1s}
   #tint{position:absolute;inset:0;background:radial-gradient(80% 70% at 50% 45%,transparent,rgba(0,0,0,.7)),
     linear-gradient(180deg,color-mix(in srgb,var(--c1) 22%,transparent),transparent 45%,color-mix(in srgb,var(--c2) 20%,transparent))}
   body.dark #bg{opacity:0} body.dark #tint{background:radial-gradient(70% 60% at 50% 45%,color-mix(in srgb,var(--c1) 10%,#050507),#000)}
-  #clock{position:absolute;top:9vh;left:0;right:0;text-align:center;text-shadow:0 2px 24px rgba(0,0,0,.5);transition:opacity .4s}
+  #clock{position:absolute;top:8vh;left:0;right:0;text-align:center;text-shadow:0 2px 24px rgba(0,0,0,.5);transition:opacity .4s}
   #clock small{display:block;font-size:2.3vh;font-weight:600;opacity:.85} #clock b{font-size:14vh;font-weight:600;letter-spacing:-.04em;line-height:1}
   body.noclock #clock{opacity:0}
-  #view{position:absolute;left:5vw;right:5vw;top:30vh;bottom:9vh;transition:top .4s}
+  #view{position:absolute;left:5vw;right:5vw;top:29vh;bottom:12vh;transition:top .4s}
   body.noclock #view{top:9vh}
 
-  /* ---------- Verci-style controls (fade in on mouse move) ---------- */
-  #ui{position:absolute;inset:0;pointer-events:none;opacity:1;transition:opacity .45s}
+  /* ---------- controls (fade in on mouse move) ---------- */
+  #ui{position:absolute;inset:0;pointer-events:none;transition:opacity .45s;z-index:2}
   body.idle #ui{opacity:0}
-  #ui > *{pointer-events:auto}
-  body.idle #ui > *{pointer-events:none}
-  .glass{background:rgba(28,28,36,.55);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px rgba(255,255,255,.09),0 10px 40px -10px rgba(0,0,0,.6)}
-  #pills{position:absolute;top:18px;left:50%;transform:translateX(-50%);display:flex;gap:2px;padding:4px;border-radius:99px}
-  #pills button{border:0;background:none;padding:8px 16px;border-radius:99px;cursor:pointer;font-size:14px;font-weight:600;color:#ddd}
-  #pills button:hover{background:rgba(255,255,255,.08)} #pills button.on{background:rgba(255,255,255,.18);color:#fff}
-  #right{position:absolute;top:18px;right:18px;display:flex;gap:8px}
-  #right button{border:0;height:40px;min-width:40px;padding:0 14px;border-radius:99px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px}
-  .dot{width:9px;height:9px;border-radius:50%;background:#777}.dot.ok{background:#32d74b}.dot.warn{background:#ffb020}.dot.bad{background:#ff453a}
-  .arrow{position:absolute;top:50%;transform:translateY(-50%);border:0;background:none;font-size:56px;font-weight:200;opacity:.55;cursor:pointer;padding:20px;line-height:1}
+  #ui > *{pointer-events:auto} body.idle #ui > *{pointer-events:none}
+  .glass{background:rgba(30,30,38,.6);backdrop-filter:blur(26px) saturate(1.5);box-shadow:0 0 0 1px rgba(255,255,255,.1),0 12px 40px -10px rgba(0,0,0,.65)}
+  /* top-right "menu bar" */
+  #bar{position:absolute;top:16px;right:16px;display:flex;gap:6px;align-items:center;padding:4px;border-radius:99px}
+  #bar button{border:0;background:none;height:34px;min-width:34px;padding:0 10px;border-radius:99px;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:13px}
+  #bar button:hover{background:rgba(255,255,255,.1)} #bar button.on{background:rgba(255,255,255,.2)}
+  #bar .sep{width:1px;height:18px;background:rgba(255,255,255,.15)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#777}.dot.ok{background:#32d74b}.dot.warn{background:#ffb020}.dot.bad{background:#ff453a}
+  .arrow{position:absolute;top:50%;transform:translateY(-50%);border:0;background:none;font-size:56px;font-weight:200;opacity:.5;cursor:pointer;padding:20px;line-height:1}
   .arrow:hover{opacity:1}.arrow.l{left:10px}.arrow.r{right:10px}
-  #info{position:absolute;left:36px;bottom:34px;max-width:40vw}
+  #info{position:absolute;left:36px;bottom:36px;max-width:40vw}
   #info small{font-size:13px;opacity:.75} #info h2{margin:2px 0 4px;font:600 40px Georgia,'Palatino Linotype',serif;letter-spacing:-.5px}
-  #info p{margin:0 0 14px;opacity:.85;font-size:14px}
-  #info .acts{display:flex;gap:10px}
-  .pinb{width:40px;height:40px;border-radius:50%;border:0;cursor:pointer;font-size:16px}.pinb.on{background:#fff;color:#000}
-  #dots{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px}
-  #dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer}#dots i.on{background:#fff}
-  #player{position:absolute;right:28px;bottom:30px;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border-radius:20px;max-width:34vw}
+  #info p{margin:0 0 12px;opacity:.85;font-size:14px}
+  #info .acts{display:flex;gap:12px;align-items:center}
+  .pinb{width:36px;height:36px;border-radius:50%;border:0;cursor:pointer;font-size:14px}.pinb.on{background:#fff;color:#000}
+  #dots{display:flex;gap:6px}
+  #dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer}#dots i.on{background:#fff;transform:scale(1.2)}
+  #player{position:absolute;right:28px;bottom:32px;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border-radius:20px;max-width:36vw}
   #player .a{width:54px;height:54px;border-radius:12px;background:#333 center/cover;flex:none}
   #player .m{min-width:0} #player b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #player span{font-size:12px;opacity:.7;white-space:nowrap}
   #player .c{display:flex;gap:4px;margin-left:6px}
   #player .c button{width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.1);cursor:pointer;font-size:11px;font-weight:700;display:grid;place-items:center}
   #player .c button.big{background:#fff;color:#000;width:40px;height:40px}
+  #player .c button:disabled{opacity:.3}
   #player svg{width:15px;height:15px;fill:currentColor}
 
-  /* dropdown panels */
-  #panel{position:absolute;top:72px;left:50%;transform:translateX(-50%) translateY(-6px);width:min(560px,92vw);max-height:calc(100vh - 140px);overflow-y:auto;
-    border-radius:22px;padding:16px 18px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
-  #panel.open{opacity:1;transform:translateX(-50%);pointer-events:auto}
-  #panel::-webkit-scrollbar{width:8px}#panel::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:8px}
-  .sec{display:none}.sec.on{display:block}
-  .row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:10px 0;font-size:14px}
-  .row label small{display:block;opacity:.6;font-size:12px}
-  .sw{position:relative;width:44px;height:26px;background:rgba(255,255,255,.18);border-radius:13px;cursor:pointer;flex:none}
-  .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}
-  .sw.on{background:#0a84ff}.sw.on::after{left:21px}
-  hr{border:0;border-top:1px solid rgba(255,255,255,.1);margin:12px 0}
-  input[type=range]{flex:1;accent-color:#fff}
-  input[type=color]{width:30px;height:30px;border:0;padding:0;background:none;cursor:pointer}
-  input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-webkit-color-swatch{border:2px solid rgba(255,255,255,.3);border-radius:50%}
-  .btn{border:0;background:rgba(255,255,255,.14);padding:7px 14px;border-radius:99px;cursor:pointer;font-size:13px}
-  .btn:hover{background:rgba(255,255,255,.22)}
-  .fonts button{display:flex;justify-content:space-between;width:100%;border:0;background:none;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:19px;text-align:left}
-  .fonts button:hover{background:rgba(255,255,255,.07)}.fonts button.on{background:rgba(255,255,255,.14)}
-  .fam{margin:12px 0 6px;font-size:12px;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:.06em}
-  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .tile{position:relative;height:66px;border-radius:12px;cursor:pointer;padding:8px 10px;display:flex;align-items:flex-end;font-size:13px;font-weight:700;
-    text-shadow:0 1px 6px rgba(0,0,0,.6);box-shadow:0 0 0 1px rgba(255,255,255,.08)}
-  .tile.on{box-shadow:0 0 0 2px #fff}
-  .tile .pn{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.35);font-size:10px;cursor:pointer;opacity:.5}
-  .tile .pn.on{opacity:1;background:#fff}
-  .seg{display:flex;background:rgba(255,255,255,.08);border-radius:10px;padding:3px}
-  .seg button{flex:1;border:0;background:none;padding:6px;border-radius:8px;cursor:pointer;font-size:13px;opacity:.75}
-  .seg button.on{background:rgba(255,255,255,.18);opacity:1}
-  .dis.off{opacity:.35;pointer-events:none}
-  .hint{font-size:12px;opacity:.55}
-  #toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 18px;border-radius:99px;font-size:15px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none}
+  /* ---------- dropdown menus (menu-bar style, top right) ---------- */
+  .menu{position:absolute;top:62px;right:16px;width:290px;max-height:calc(100vh - 90px);overflow-y:auto;border-radius:14px;padding:6px;
+    opacity:0;transform:translateY(-6px);pointer-events:none !important;transition:opacity .15s,transform .15s;font-size:13.5px}
+  .menu.open{opacity:1;transform:none;pointer-events:auto !important}
+  .menu::-webkit-scrollbar{width:8px}.menu::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:8px}
+  .mh{padding:8px 10px 3px;font-size:11.5px;font-weight:600;opacity:.5}
+  .mi{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:7px;cursor:pointer;min-height:28px}
+  .mi:hover{background:#0a84ff}
+  .mi .ck{width:14px;flex:none;font-size:12px}
+  .mi .lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mi .pn{opacity:0;border:0;background:none;cursor:pointer;font-size:11px;padding:2px}
+  .mi:hover .pn,.mi .pn.on{opacity:1}
+  .mi input[type=color]{width:18px;height:18px;border:0;padding:0;background:none;cursor:pointer}
+  .mi input[type=color]::-webkit-color-swatch-wrapper{padding:0}.mi input[type=color]::-webkit-color-swatch{border:1px solid rgba(255,255,255,.4);border-radius:50%}
+  .ms{height:1px;background:rgba(255,255,255,.1);margin:5px 8px}
+  .mr{display:flex;align-items:center;gap:8px;padding:6px 10px}
+  .mr input[type=range]{flex:1;accent-color:#fff;min-width:0}
+  .mr .v{font-size:11px;opacity:.6;width:34px;text-align:right;font-variant-numeric:tabular-nums}
+  .mbtn{border:0;background:rgba(255,255,255,.14);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:12px}
+  .mbtn:hover{background:rgba(255,255,255,.25)}
+  .mrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 10px}
+  .mrow select{background:rgba(255,255,255,.12);border:0;border-radius:7px;padding:4px 8px;font-size:12.5px;outline:none;max-width:150px}
+  .mrow select option{background:#2a2a33}
+  .sw{position:relative;width:36px;height:21px;background:rgba(255,255,255,.2);border-radius:11px;cursor:pointer;flex:none}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;transition:.15s}
+  .sw.on{background:#0a84ff}.sw.on::after{left:17px}
+  .mtitle{display:flex;justify-content:space-between;align-items:center;padding:8px 10px 6px;font-weight:700;font-size:14px}
+  .gcols{display:flex;justify-content:space-around;padding:6px 10px 8px}
+  .gcols label{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;opacity:.8}
+  .gcols input{width:44px;height:44px;border:0;padding:0;background:none;cursor:pointer}
+  .gcols input::-webkit-color-swatch-wrapper{padding:0}.gcols input::-webkit-color-swatch{border:2px solid rgba(255,255,255,.35);border-radius:50%}
+  .dis{opacity:.35;pointer-events:none}
+  #toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 18px;border-radius:99px;font-size:15px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:3}
   #toast.show{opacity:1}
 </style></head><body>
 <div id="bg"></div><div id="tint"></div>
@@ -87,51 +88,72 @@
 <div id="view"></div>
 <div id="glow" style="position:absolute;inset:0;pointer-events:none;z-index:1"></div>
 
-<div id="ui" style="z-index:2">
-  <div id="pills" class="glass">
-    <button data-p="style">Style</button><button data-p="size">Size</button><button data-p="font">Font</button><button data-p="look">Aesthetics</button><button data-p="disp">Display</button>
-  </div>
-  <div id="right">
-    <button class="glass" id="statBtn" title="Player status"><span class="dot" id="dot"></span><span id="statTxt">Connecting…</span></button>
-    <button class="glass" id="reBtn" title="Reconnect to the player">⟳</button>
-    <button class="glass" id="winBtn" title="Open the Glowrim window">⚙</button>
-    <button class="glass" id="exitBtn" title="Close full screen (Esc)">✕</button>
+<div id="ui">
+  <div id="bar" class="glass">
+    <button id="statBtn" title="Player status"><span class="dot" id="dot"></span><span id="statTxt">Connecting…</span></button>
+    <span class="sep"></span>
+    <button id="mLyrBtn" title="Lyrics menu">💬 Lyrics</button>
+    <button id="mGlowBtn" title="Glow menu">✦ Glow</button>
+    <span class="sep"></span>
+    <button id="reBtn" title="Reconnect to the player">⟳</button>
+    <button id="winBtn" title="Open the Glowrim window">⚙</button>
+    <button id="exitBtn" title="Close full screen (Esc)">✕</button>
   </div>
   <button class="arrow l" id="pS">‹</button><button class="arrow r" id="nS">›</button>
   <div id="info"><small id="iFam"></small><h2 id="iName"></h2><p id="iDesc"></p>
-    <div class="acts"><button class="pinb glass" id="pinBtn" title="Pin to the tray menu">📌</button></div></div>
-  <div id="dots"></div>
+    <div class="acts"><button class="pinb glass" id="pinBtn" title="Pin to the tray menu">📌</button><div id="dots"></div></div></div>
   <div id="player" class="glass"><div class="a" id="art"></div><div class="m"><b id="t">Nothing playing</b><span id="ar"></span></div>
     <div class="c"><button id="b15">−15</button><button id="pv"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
       <button id="pp" class="big"><svg viewBox="0 0 24 24" id="ppI"><path d="M7 4v16l13-8z"/></svg></button>
       <button id="nx"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button><button id="f15">+15</button></div></div>
 
-  <div id="panel" class="glass">
-    <div class="sec" id="s-style"></div>
-    <div class="sec" id="s-size">
-      <div class="row"><span style="font-size:13px">A</span><input type="range" id="scale" min="50" max="200" step="5"><span style="font-size:24px">A</span></div>
-      <div class="row"><b id="scaleV">100%</b><button class="btn" id="scaleR">Reset</button></div>
+  <!-- Lyrics menu (Verci-style) -->
+  <div class="menu glass" id="mLyr">
+    <div class="mh">Style</div><div id="mStyles"></div>
+    <div class="ms"></div>
+    <div class="mi" data-t="keepAwake"><span class="ck"></span><span class="lbl">Keep Screen Awake</span></div>
+    <div class="mi" data-t="lyrics"><span class="ck"></span><span class="lbl">Floating lyrics when not full screen</span></div>
+    <div class="ms"></div>
+    <div class="mh">Font</div><div id="mFonts"></div>
+    <div class="ms"></div>
+    <div class="mh">Text Size</div>
+    <div class="mr"><input type="range" id="scale" min="50" max="200" step="5"><span class="v" id="scaleV"></span><button class="mbtn" id="scaleR">Reset</button></div>
+    <div class="ms"></div>
+    <div class="mh">Display</div><div id="mDisp"></div>
+    <div class="ms"></div>
+    <div class="mh">Color</div>
+    <div class="mi" data-t="lyricMatchAlbum"><span class="ck"></span><span class="lbl">Auto Sync with album</span></div>
+    <div id="mCols">
+      <label class="mi"><span class="ck"></span><span class="lbl">Lyric Text…</span><input type="color" data-c="text"></label>
+      <label class="mi"><span class="ck"></span><span class="lbl">Highlight…</span><input type="color" data-c="hl"></label>
+      <label class="mi"><span class="ck"></span><span class="lbl">Secondary Text…</span><input type="color" data-c="sec"></label>
     </div>
-    <div class="sec" id="s-font"><div class="fonts" id="fonts"></div></div>
-    <div class="sec" id="s-look">
-      <div class="row"><label>Match the album cover<small>Colours follow whatever is playing.</small></label><div class="sw" data-k="lyricMatchAlbum"></div></div>
-      <hr>
-      <div class="dis" id="cols">
-        <div class="row"><label>Lyric text</label><input type="color" data-c="text"></div>
-        <div class="row"><label>Highlight</label><input type="color" data-c="hl"></div>
-        <div class="row"><label>Secondary text</label><input type="color" data-c="sec"></div>
-      </div>
-      <div class="row"><span class="hint">The iPhone-screen styles keep their own colours.</span><button class="btn" id="resetC">Reset colors</button></div>
-    </div>
-    <div class="sec" id="s-disp">
-      <div class="row"><label>Background</label><div class="seg" data-k="stageBg" style="width:220px"><button data-v="art">Album art</button><button data-v="dark">Dark</button></div></div>
-      <div class="row"><label>Show the clock</label><div class="sw" data-k="stageClock"></div></div>
-      <div class="row"><label>Keep the screen awake<small>While music is playing.</small></label><div class="sw" data-k="keepAwake"></div></div>
-      <div class="row"><label>Screen glow</label><div class="sw" data-k="enabled"></div></div>
-      <div class="row"><label>Floating lyrics when not full screen</label><div class="sw" data-k="lyrics"></div></div>
-      <hr><div class="fam" style="margin-top:0">Show on</div><div id="dispList"></div>
-      <div class="hint">Shortcut: Ctrl + Alt + L opens and closes full-screen lyrics from anywhere.</div>
-    </div>
+    <div class="mi" id="resetC"><span class="ck"></span><span class="lbl">Reset Colors</span></div>
+    <div class="ms"></div>
+    <div class="mh">Background</div>
+    <div class="mi" data-v="stageBg:art"><span class="ck"></span><span class="lbl">Album art</span></div>
+    <div class="mi" data-v="stageBg:dark"><span class="ck"></span><span class="lbl">Dark</span></div>
+    <div class="mi" data-t="stageClock"><span class="ck"></span><span class="lbl">Show clock</span></div>
+    <div class="ms"></div>
+    <div class="mi" id="openWin"><span class="ck"></span><span class="lbl">Open Glowrim window…</span></div>
+    <div class="mi" id="closeFull"><span class="ck"></span><span class="lbl">Close full screen</span><span style="opacity:.5;font-size:11px">Esc</span></div>
+  </div>
+
+  <!-- Glow menu (Lumn-style) -->
+  <div class="menu glass" id="mGlow">
+    <div class="mtitle">Glow <div class="sw" data-k="enabled"></div></div>
+    <div class="mrow"><span>Gradient</span><select data-s="glowColors" data-num="1"><option value="1">1 Color</option><option value="2">2 Colors</option></select></div>
+    <div class="mrow"><span>Animation</span><select data-s="glowMode"><option value="default">Default</option><option value="music">Music Sync</option><option value="idle">Idle</option><option value="none">None</option></select></div>
+    <div class="mh">Thickness</div><div class="mr"><input type="range" data-n="thickness" min="2" max="60"><span class="v"></span></div>
+    <div class="mh">Glow</div><div class="mr"><input type="range" data-n="glow" min="0" max="140"><span class="v"></span></div>
+    <div class="mh">Brightness</div><div class="mr"><input type="range" data-n="idleBrightness" min="0.1" max="1" step="0.05"><span class="v"></span></div>
+    <div class="mh">Reactivity</div><div class="mr"><input type="range" data-n="intensity" min="0.3" max="2" step="0.05"><span class="v"></span></div>
+    <div class="ms"></div>
+    <div class="mrow"><span>Override album color</span><div class="sw" data-k="albumColors" data-invert="1"></div></div>
+    <div class="gcols" id="gcols"><label><input type="color" id="color1">Primary</label><label id="sec2"><input type="color" id="color2">Secondary</label></div>
+    <div class="ms"></div>
+    <div class="mrow"><span>Display</span><select id="gDisp"></select></div>
+    <div class="mrow"><span>Over full-screen apps</span><div class="sw" data-k="glowOverFullscreen"></div></div>
   </div>
 </div>
 <div id="toast" class="glass"></div>
@@ -141,34 +163,37 @@
 <script>
 const $ = id => document.getElementById(id), body = document.body;
 const glow = Glow($('glow'));
-api.onSettings(s => glow.set(s));
-api.onLevel(v => glow.level(v));
 const view = new LyricsView($('view'), { full: true, scale: Math.max(1.15, innerHeight / 720) });
 $('view').classList.add('full');
-let S = null, T = { status: 'None' }, DISP = [], panelOpen = null;
+let S = null, DISP = [], menu = null;
 const FONTS = ['Segoe UI Variable Display', 'Bahnschrift', 'Georgia', 'Cambria', 'Arial Black', 'Palatino Linotype', 'Cascadia Code'];
 const idxOf = k => Math.max(0, LYRIC_STYLES.findIndex(s => s.key === k));
+const ck = (el, on) => { el.querySelector('.ck').textContent = on ? '✓' : ''; };
 
 // ---------- data from the app ----------
 api.onSettings(s => {
-  const prevStyle = S && S.lyricStyle; S = s; view.setSettings(s);
+  const prevStyle = S && S.lyricStyle; S = s; view.setSettings(s); glow.set(s);
   const r = document.documentElement.style; r.setProperty('--c1', s.lc1 || s.c1); r.setProperty('--c2', s.lc2 || s.c2);
   body.classList.toggle('dark', s.stageBg === 'dark'); body.classList.toggle('noclock', !s.stageClock);
-  document.querySelectorAll('.sw[data-k]').forEach(el => el.classList.toggle('on', !!s[el.dataset.k]));
-  document.querySelectorAll('.seg[data-k] button').forEach(b => b.classList.toggle('on', s[b.parentNode.dataset.k] === b.dataset.v));
+  document.querySelectorAll('.mi[data-t]').forEach(el => ck(el, !!s[el.dataset.t]));
+  document.querySelectorAll('.mi[data-v]').forEach(el => { const [k, v] = el.dataset.v.split(':'); ck(el, s[k] === v); });
+  document.querySelectorAll('.sw[data-k]').forEach(el => { const v = !!s[el.dataset.k]; el.classList.toggle('on', el.dataset.invert ? !v : v); });
+  document.querySelectorAll('select[data-s]').forEach(el => el.value = String(s[el.dataset.s]));
+  document.querySelectorAll('input[data-n]').forEach(r => { if (document.activeElement !== r) r.value = s[r.dataset.n]; r.nextElementSibling.textContent = s[r.dataset.n]; });
   if (document.activeElement !== $('scale')) $('scale').value = s.lyricScale; $('scaleV').textContent = s.lyricScale + '%';
-  $('cols').classList.toggle('off', s.lyricMatchAlbum);
+  $('mCols').classList.toggle('dis', s.lyricMatchAlbum);
   document.querySelectorAll('input[data-c]').forEach(i => i.value = (s.lyricColors || {})[i.dataset.c] || '#ffffff');
-  document.querySelectorAll('#fonts button').forEach(b => { const on = b.dataset.f === s.lyricFont; b.classList.toggle('on', on); b.lastChild.textContent = on ? '✓' : ''; });
-  renderInfo(); renderStyles(); renderDisplays();
+  $('color1').value = s.color1; $('color2').value = s.color2;
+  $('gcols').classList.toggle('dis', s.albumColors); $('sec2').style.display = s.glowColors === 1 ? 'none' : '';
+  renderInfo(); renderStyles(); renderFonts(); renderDisplays();
   if (prevStyle && prevStyle !== s.lyricStyle) toast(LYRIC_STYLES[idxOf(s.lyricStyle)].name);
 });
 api.onNow(n => { view.setNow(n); $('t').textContent = n.title || 'Nothing playing'; $('ar').textContent = n.artist || '';
   $('art').style.backgroundImage = n.art ? `url("${n.art}")` : ''; $('bg').style.backgroundImage = n.art ? `url("${n.art}")` : ''; });
-api.onTime(t => { T = t; view.setTime(t); $('ppI').innerHTML = t.status === 'Playing' ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>';
+api.onTime(t => { view.setTime(t); $('ppI').innerHTML = t.status === 'Playing' ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>';
   $('b15').disabled = $('f15').disabled = !t.canSeek; });
 api.onLyrics(l => view.setLyrics(l));
-api.onLevel(v => view.level(v));
+api.onLevel(v => { view.level(v); glow.level(v); });
 api.onDisplays(d => { DISP = d; renderDisplays(); });
 api.onStatus(st => {
   const app = (st.app || '').replace(/\.exe$/i, '').split('!').pop(), ok = st.helper === 'running' && st.title;
@@ -177,8 +202,8 @@ api.onStatus(st => {
     : st.helper === 'running' ? 'Waiting for music' : 'Not connected';
 });
 
-// ---------- style info, arrows, dots ----------
-LYRIC_STYLES.forEach((s, k) => { const d = document.createElement('i'); d.title = s.name; d.onclick = () => pick(s.key); $('dots').appendChild(d); });
+// ---------- style name, dots, arrows ----------
+LYRIC_STYLES.forEach(s => { const d = document.createElement('i'); d.title = s.name; d.onclick = () => pick(s.key); $('dots').appendChild(d); });
 const pick = key => api.set({ lyricStyle: key });
 const step = d => pick(LYRIC_STYLES[(idxOf(S.lyricStyle) + d + LYRIC_STYLES.length) % LYRIC_STYLES.length].key);
 $('pS').onclick = () => step(-1); $('nS').onclick = () => step(1);
@@ -191,58 +216,67 @@ function renderInfo() {
 const togglePin = k => { const p = new Set(S.pinnedStyles || []); p.has(k) ? p.delete(k) : p.add(k); api.set({ pinnedStyles: [...p] }); };
 $('pinBtn').onclick = () => togglePin(S.lyricStyle);
 
-// ---------- panels ----------
-document.querySelectorAll('#pills button').forEach(b => b.onclick = () => openPanel(panelOpen === b.dataset.p ? null : b.dataset.p));
-function openPanel(p) {
-  panelOpen = p; $('panel').classList.toggle('open', !!p);
-  document.querySelectorAll('#pills button').forEach(b => b.classList.toggle('on', b.dataset.p === p));
-  document.querySelectorAll('.sec').forEach(s => s.classList.toggle('on', s.id === 's-' + p));
+// ---------- menus ----------
+function openMenu(m) {
+  menu = menu === m ? null : m;
+  ['mLyr', 'mGlow'].forEach(id => $(id).classList.toggle('open', id === menu));
+  $('mLyrBtn').classList.toggle('on', menu === 'mLyr'); $('mGlowBtn').classList.toggle('on', menu === 'mGlow');
+  wake();
 }
+$('mLyrBtn').onclick = e => { e.stopPropagation(); openMenu('mLyr'); };
+$('mGlowBtn').onclick = e => { e.stopPropagation(); openMenu('mGlow'); };
+addEventListener('mousedown', e => { if (menu && !e.target.closest('.menu') && !e.target.closest('#bar')) openMenu(null); });
+
 function renderStyles() {
-  const box = $('s-style'), fams = [...new Set(LYRIC_STYLES.map(s => s.family))];
-  box.innerHTML = fams.map(f => `<div class="fam">${f}</div><div class="tiles">${LYRIC_STYLES.filter(s => s.family === f).map(s =>
-    `<div class="tile ${S.lyricStyle === s.key ? 'on' : ''}" data-k="${s.key}" style="background:linear-gradient(135deg,${s.grad[0]},${s.grad[1]})">${s.name.replace('Native Design ', '')}
-      <button class="pn ${(S.pinnedStyles || []).includes(s.key) ? 'on' : ''}" data-pin="${s.key}" title="Pin to tray">📌</button></div>`).join('')}</div>`).join('');
-  box.querySelectorAll('.tile').forEach(t => t.onclick = e => { if (e.target.dataset.pin) return togglePin(e.target.dataset.pin); pick(t.dataset.k); });
+  $('mStyles').innerHTML = LYRIC_STYLES.map(s => `<div class="mi" data-st="${s.key}"><span class="ck">${S.lyricStyle === s.key ? '✓' : ''}</span>
+    <span class="lbl">${s.name}</span><button class="pn ${(S.pinnedStyles || []).includes(s.key) ? 'on' : ''}" data-pin="${s.key}" title="Pin to tray">📌</button></div>`).join('');
+  $('mStyles').querySelectorAll('.mi').forEach(el => el.onclick = e => { if (e.target.dataset.pin) return togglePin(e.target.dataset.pin); pick(el.dataset.st); });
 }
-FONTS.forEach(f => { const b = document.createElement('button'); b.dataset.f = f; b.style.fontFamily = `'${f}'`; b.innerHTML = `${f.replace(' Variable Display', '')}<span></span>`;
-  b.onclick = () => api.set({ lyricFont: f }); $('fonts').appendChild(b); });
-$('scale').oninput = e => api.set({ lyricScale: +e.target.value }); $('scaleR').onclick = () => api.set({ lyricScale: 100 });
-$('resetC').onclick = () => api.set({ resetColors: true });
-document.querySelectorAll('input[data-c]').forEach(i => i.oninput = () => api.set({ lyricColors: { ...S.lyricColors, [i.dataset.c]: i.value } }));
-document.querySelectorAll('.sw[data-k]').forEach(el => el.onclick = () => api.set({ [el.dataset.k]: !el.classList.contains('on') }));
-document.querySelectorAll('.seg[data-k] button').forEach(b => b.onclick = () => api.set({ [b.parentNode.dataset.k]: b.dataset.v }));
+function renderFonts() {
+  $('mFonts').innerHTML = FONTS.map(f => `<div class="mi" data-f="${f}" style="font-family:'${f}';font-size:15px"><span class="ck">${S.lyricFont === f ? '✓' : ''}</span><span class="lbl">${f.replace(' Variable Display', '')}</span></div>`).join('');
+  $('mFonts').querySelectorAll('.mi').forEach(el => el.onclick = () => api.set({ lyricFont: el.dataset.f }));
+}
 function renderDisplays() {
   if (!S) return; const ids = (S.stageDisplays || []).map(String);
-  $('dispList').innerHTML = DISP.map(d => { const on = ids.length ? ids.includes(d.id) : d.primary;
-    return `<div class="row"><label>${d.label}<small>${d.size}${d.primary ? ' · main' : ''}</small></label><div class="sw ${on ? 'on' : ''}" data-sd="${d.id}"></div></div>`; }).join('');
-  $('dispList').querySelectorAll('[data-sd]').forEach(el => el.onclick = () => {
+  $('mDisp').innerHTML = DISP.map(d => `<div class="mi" data-sd="${d.id}"><span class="ck">${(ids.length ? ids.includes(d.id) : d.primary) ? '✓' : ''}</span><span class="lbl">${d.label}</span></div>`).join('');
+  $('mDisp').querySelectorAll('.mi').forEach(el => el.onclick = () => {
     const cur = new Set(ids.length ? ids : DISP.filter(d => d.primary).map(d => d.id)); cur.has(el.dataset.sd) ? cur.delete(el.dataset.sd) : cur.add(el.dataset.sd);
     if (cur.size) api.set({ stageDisplays: [...cur] }); });
+  const g = $('gDisp'), opts = [['all', 'All displays'], ['main', 'Main display'], ...DISP.map(d => [d.id, d.label])];
+  g.innerHTML = opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join(''); g.value = String(S.glowDisplays);
 }
+document.querySelectorAll('.mi[data-t]').forEach(el => el.onclick = () => api.set({ [el.dataset.t]: !S[el.dataset.t] }));
+document.querySelectorAll('.mi[data-v]').forEach(el => el.onclick = () => { const [k, v] = el.dataset.v.split(':'); api.set({ [k]: v }); });
+document.querySelectorAll('.sw[data-k]').forEach(el => el.onclick = () => { const on = el.classList.contains('on'); api.set({ [el.dataset.k]: el.dataset.invert ? on : !on }); });
+document.querySelectorAll('select[data-s]').forEach(el => el.onchange = () => api.set({ [el.dataset.s]: el.dataset.num ? +el.value : el.value }));
+document.querySelectorAll('input[data-n]').forEach(r => r.oninput = () => api.set({ [r.dataset.n]: +r.value }));
+document.querySelectorAll('input[data-c]').forEach(i => i.oninput = () => api.set({ lyricColors: { ...S.lyricColors, [i.dataset.c]: i.value } }));
+['color1', 'color2'].forEach(k => $(k).oninput = e => api.set({ [k]: e.target.value }));
+$('gDisp').onchange = e => api.set({ glowDisplays: e.target.value });
+$('scale').oninput = e => api.set({ lyricScale: +e.target.value }); $('scaleR').onclick = () => api.set({ lyricScale: 100 });
+$('resetC').onclick = () => api.set({ resetColors: true });
+$('openWin').onclick = () => api.openWindow(); $('closeFull').onclick = () => api.stage(false);
 
-// ---------- player + buttons ----------
+// ---------- player + bar buttons ----------
 $('pv').onclick = () => api.control('prev'); $('nx').onclick = () => api.control('next'); $('pp').onclick = () => api.control('toggle');
 $('b15').onclick = () => api.control('seek', -15000); $('f15').onclick = () => api.control('seek', 15000);
 $('reBtn').onclick = () => { api.reconnect(); toast('Reconnecting…'); };
 $('winBtn').onclick = () => api.openWindow(); $('exitBtn').onclick = () => api.stage(false);
 $('statBtn').onclick = () => api.openWindow('status');
 
-// ---------- auto-hide controls; keyboard ----------
+// ---------- auto-hide; keyboard ----------
 let idleT;
-function wake() { body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => { if (!panelOpen) body.classList.add('idle'); }, 2600); }
+function wake() { body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => { if (!menu) body.classList.add('idle'); }, 2600); }
 addEventListener('mousemove', wake); addEventListener('mousedown', wake); wake();
-$('view').addEventListener('click', () => panelOpen && openPanel(null));
 addEventListener('keydown', e => {
-  wake();
-  if (e.key === 'Escape') { panelOpen ? openPanel(null) : api.stage(false); }
+  wake(); if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'Escape') { menu ? openMenu(null) : api.stage(false); }
   else if (e.key === 'ArrowLeft') step(-1); else if (e.key === 'ArrowRight') step(1);
   else if (e.key === ' ') { e.preventDefault(); api.control('toggle'); }
   else if (e.key === '+' || e.key === '=') api.set({ lyricScale: Math.min(200, S.lyricScale + 10) });
   else if (e.key === '-') api.set({ lyricScale: Math.max(50, S.lyricScale - 10) });
 });
 let tt; function toast(t) { $('toast').textContent = t; $('toast').classList.add('show'); clearTimeout(tt); tt = setTimeout(() => $('toast').classList.remove('show'), 1100); }
-
 function clock() { const d = new Date(); $('time').textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M/i, '');
   $('date').textContent = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }); }
 clock(); setInterval(clock, 5000);

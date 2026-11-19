@@ -191,7 +191,7 @@ function openStage() {
     w.webContents.once('did-finish-load', () => {
       primeWindow(w); send(w, 'displays', displayList()); sendStatus();
       if (shot) {
-        [[6000, 'idle', ''], [8500, 'ui', ''], [10500, 'style', "openPanel('style')"]].forEach(([ms, name, js]) => setTimeout(() =>
+        [[6000, 'idle', ''], [8000, 'ui', ''], [10000, 'lyrmenu', "openMenu('mLyr')"], [12000, 'glowmenu', "openMenu('mGlow')"]].forEach(([ms, name, js]) => setTimeout(() =>
           w.webContents.executeJavaScript(`${name === 'idle' ? "document.body.classList.add('idle')" : 'wake()'};${js}`)
             .then(() => new Promise(r => setTimeout(r, 500))).then(() => w.webContents.capturePage())
             .then(img => fs.writeFileSync(path.join(shot, `stage-${name}.png`), img.toPNG())), ms));
