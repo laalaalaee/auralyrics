@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  html,body{margin:0;height:100%;overflow:hidden;background:transparent}
+  #g{position:fixed;inset:0}
+</style></head><body>
+<div id="g"></div>
+<script src="glow.js"></script>
+<script>
+const glow = Glow(document.getElementById('g'));
+window.api.onSettings(s => glow.set({ ...s, enabled: true })); // the window itself is hidden when the glow is off
+window.api.onLevel(l => glow.level(l));
+</script></body></html>
