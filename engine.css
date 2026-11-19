@@ -1,0 +1,185 @@
+/* Glowrim lyrics engine styles. Variables: --fs --font --tx --hl --sec --c1 --c2 --beat */
+@property --c1 { syntax: '<color>'; inherits: true; initial-value: #ff3d81; }
+@property --c2 { syntax: '<color>'; inherits: true; initial-value: #4d7cff; }
+.gl-root { position: relative; overflow: hidden; color: var(--tx, #fff); font-family: var(--font); --fs: 34px; --beat: 0;
+  transition: --c1 1.4s ease, --c2 1.4s ease; user-select: none; container-type: size; }
+.gl-root.paused .gl-stage { opacity: .5 }
+.gl-stage { position: absolute; inset: 0; transition: opacity .6s }
+.gl-stage .ic { font-style: normal; margin: 0 .12em; display: inline-block; filter: none }
+.sh, .gl-stage:not(.native) { text-shadow: 0 2px 12px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.9) }
+.gl-pill { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); padding: 8px 16px; border-radius: 99px;
+  background: rgba(20,20,26,.82); backdrop-filter: blur(10px); font: 600 13px 'Segoe UI', sans-serif; color: #ddd;
+  box-shadow: 0 0 24px -6px var(--c1); opacity: 0; transition: opacity .5s; white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis; z-index: 4 }
+.gl-pill.show { opacity: 1 }
+
+/* word states shared by most styles */
+.gl-stage .w { transition: color .25s, opacity .25s, text-shadow .3s }
+.gl-stage:not(.native) .w { color: color-mix(in srgb, var(--sec) 38%, transparent) }
+.gl-stage:not(.native) .w.on { color: var(--tx) }
+.gl-stage:not(.native) .w.now { color: var(--hl); text-shadow: 0 0 18px color-mix(in srgb, var(--hl) 65%, transparent), 0 2px 10px rgba(0,0,0,.8) }
+
+/* ---------- Classic ---------- */
+.st-stack { -webkit-mask: linear-gradient(transparent, #000 22%, #000 78%, transparent) }
+.st-stack .track { position: absolute; left: 0; right: 0; top: 50%; transition: transform .65s cubic-bezier(.2,.8,.2,1) }
+.st-stack .l { padding: .18em .8em; text-align: center; font-size: var(--fs); font-weight: 700; line-height: 1.18;
+  opacity: .3; transform: scale(.82); filter: blur(1.2px); transition: all .55s cubic-bezier(.2,.8,.2,1) }
+.st-stack .l.near { opacity: .55; filter: none }
+.st-stack .l.done .w { color: var(--tx) }
+.st-stack .l.cur { opacity: 1; filter: none; transform: scale(calc(1 + var(--beat) * .035)) }
+.st-karaoke { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .4em; text-align: center; padding: 0 .8em }
+.st-karaoke .cur { font-size: calc(var(--fs) * 1.1); font-weight: 800; line-height: 1.15; transform: scale(calc(1 + var(--beat) * .03)) }
+.st-karaoke .cur .w.now { background: linear-gradient(90deg, var(--hl) calc(var(--wp) * 100%), color-mix(in srgb, var(--sec) 38%, transparent) calc(var(--wp) * 100%));
+  -webkit-background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--hl) 50%, transparent)) }
+.st-karaoke .cur .w.on:not(.now) { color: var(--hl) }
+.st-karaoke .nx { font-size: calc(var(--fs) * .6); font-weight: 600; opacity: .5 }
+.st-minimal { display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 .8em }
+.st-minimal .m { font-size: var(--fs); font-weight: 600; transition: opacity .3s, transform .3s }
+.st-minimal .m.out { opacity: 0; transform: translateY(8px) }
+
+/* ---------- Kinetic: Ship ---------- */
+.st-ship .persp { position: absolute; inset: 0; perspective: 900px; display: flex; align-items: center; justify-content: center }
+.st-ship .wall { position: absolute; top: 50%; left: 6%; right: 6%; transform-style: preserve-3d;
+  transform: translateY(var(--y, 0)) rotateX(var(--rx, 6deg)) rotateY(var(--ry, 0)); transition: transform .8s cubic-bezier(.2,.8,.2,1) }
+.st-ship .row { font-size: calc(var(--fs) * 1.15); font-weight: 900; text-transform: uppercase; letter-spacing: -.01em; line-height: 1.05;
+  padding: .12em 0; transform-style: preserve-3d; transition: opacity .6s }
+.st-ship .row.old { opacity: .32 }
+.st-ship .w { display: inline-block; opacity: 0; transform: translateZ(320px) translateY(-.4em) rotateX(-40deg);
+  transition: opacity .35s, transform .55s cubic-bezier(.2,1.3,.3,1), color .3s !important }
+.st-ship .w.on { opacity: 1; transform: none }
+
+/* ---------- Kinetic: Fisheye ---------- */
+.st-fisheye, .st-fisheyeVisual { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05em }
+.st-fisheye .lens, .st-fisheyeVisual .lens { position: absolute; left: 50%; top: 50%; width: calc(var(--fs) * 7); height: calc(var(--fs) * 3.4);
+  transform: translate(-50%, -50%) scale(calc(1 + var(--beat) * .06)); border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--hl) 22%, transparent), transparent); filter: blur(6px) }
+.st-fisheye .slot, .st-fisheyeVisual .slot { position: relative; font-weight: 800; text-align: center; white-space: nowrap; line-height: 1.05 }
+.st-fisheye .slot.a, .st-fisheye .slot.c, .st-fisheyeVisual .slot.a, .st-fisheyeVisual .slot.c {
+  font-size: calc(var(--fs) * .85); opacity: .38; filter: blur(1.5px); transform: scaleY(.7); color: var(--sec) }
+.st-fisheye .slot.b, .st-fisheyeVisual .slot.b { font-size: calc(var(--fs) * 2.1); color: var(--tx);
+  transform: scale(1.08, 1.22); text-shadow: 0 0 26px color-mix(in srgb, var(--hl) 60%, transparent), 0 3px 14px rgba(0,0,0,.8) }
+.st-fisheye .slot.b.pop, .st-fisheyeVisual .slot.b.pop { animation: bulge .38s cubic-bezier(.2,1.5,.4,1) }
+@keyframes bulge { from { transform: scale(.7, .5); opacity: .3; filter: blur(4px) } to { transform: scale(1.08, 1.22); opacity: 1; filter: none } }
+
+/* ---------- Kinetic: Visual ---------- */
+.st-visual { display: flex; align-items: center; justify-content: center }
+.st-visual .vs { text-align: center; transition: opacity .2s, transform .2s }
+.st-visual .vs.out { opacity: 0; transform: scale(.96) }
+.st-visual .vr { font-size: calc(var(--fs) * 1.35); font-weight: 800; line-height: 1.06; letter-spacing: -.015em }
+.st-visual .ic { font-size: .8em; margin-right: .15em; opacity: .35; transition: opacity .3s, transform .3s; transform: scale(.8) }
+.st-visual .w.on .ic { opacity: 1; transform: scale(1) }
+
+/* ---------- Motion: Codestyle ---------- */
+.st-codestyle, .st-codestyleVisual { display: flex; align-items: center; justify-content: center; padding: 4% 5% }
+.gl-stage .ed { width: 100%; max-height: 100%; border-radius: 12px; overflow: hidden; background: rgba(13,14,22,.9); box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 20px 60px -20px #000;
+  font-family: 'Cascadia Code', Consolas, monospace; text-shadow: none }
+.gl-stage .ed .bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(255,255,255,.04); font-size: 11px; color: #777 }
+.gl-stage .ed .bar i { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57 } .gl-stage .ed .bar i:nth-child(2) { background: #febc2e } .gl-stage .ed .bar i:nth-child(3) { background: #28c840 }
+.gl-stage .ed .bar span { margin-left: 8px }
+.gl-stage .code { padding: 10px 14px 14px; font-size: calc(var(--fs) * .55); line-height: 1.55; display: flex; flex-direction: column; justify-content: flex-end; min-height: 6em }
+.gl-stage .cl { white-space: pre-wrap; word-break: break-word; color: #c9d1d9; opacity: .55 }
+.gl-stage .cl:last-child { opacity: 1 }
+.gl-stage .cl b { display: inline-block; width: 2.2em; color: #4b5263; font-weight: 400; user-select: none }
+.gl-stage .cl k { color: #c678dd } .gl-stage .cl v { color: #e5c07b } .gl-stage .cl f { color: #61afef } .gl-stage .cl s { color: #98c379; text-decoration: none } .gl-stage .cl c { color: #5c6370; font-style: italic }
+.gl-stage .cl u.cur { display: inline-block; width: .55em; height: 1.1em; vertical-align: -.2em; background: #ff3b3b; margin-left: 2px; animation: blink 1s steps(1) infinite; box-shadow: 0 0 12px #ff3b3b }
+@keyframes blink { 50% { opacity: 0 } }
+
+/* ---------- Motion: SVG scenes ---------- */
+.gl-stage svg.scene { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible }
+.gl-stage svg .ln { transition: opacity .8s, transform .8s; transform-box: fill-box }
+.gl-stage svg .ln.out { opacity: 0 }
+.gl-stage svg text.lbl { font-family: var(--font); font-weight: 700; fill: color-mix(in srgb, var(--sec) 40%, transparent); transition: fill .3s; paint-order: stroke; stroke: rgba(0,0,0,.55); stroke-width: 4px }
+.gl-stage svg text.lbl.on { fill: var(--tx) }
+.st-branches .seg { fill: none; stroke: var(--hl); stroke-width: 3.5; stroke-linecap: round; filter: drop-shadow(0 0 6px var(--hl)) }
+.st-branches .twig { fill: none; stroke: color-mix(in srgb, var(--hl) 40%, transparent); stroke-width: 2; stroke-linecap: round }
+.st-branches .node { fill: #222; stroke: color-mix(in srgb, var(--sec) 50%, transparent); stroke-width: 2; transition: all .3s }
+.st-branches .node.on { fill: var(--hl); stroke: #fff; filter: drop-shadow(0 0 10px var(--hl)); r: 9 }
+.st-web .strand { stroke: color-mix(in srgb, var(--tx) 80%, transparent); stroke-width: 1.6 }
+.st-web .ring { fill: none; stroke: color-mix(in srgb, var(--hl) 75%, transparent); stroke-width: 1.2; opacity: 0; transition: opacity .5s }
+.st-web .ring.on { opacity: 1 }
+.st-web .hub { fill: var(--hl); filter: drop-shadow(0 0 8px var(--hl)) }
+.st-web text.lbl.on { fill: var(--hl) }
+.st-constellation .dust { fill: #fff; opacity: .5; animation: twinkle 4s ease-in-out infinite }
+@keyframes twinkle { 50% { opacity: .1 } }
+.st-constellation .cline { stroke: color-mix(in srgb, var(--hl) 80%, #fff); stroke-width: 1.4; opacity: .85 }
+.st-constellation .star { fill: color-mix(in srgb, var(--sec) 40%, transparent); transition: all .4s }
+.st-constellation .star.on { fill: #fff; filter: drop-shadow(0 0 6px var(--hl)) drop-shadow(0 0 14px var(--hl)); r: 6 }
+
+/* ---------- Native Design: shared phone ---------- */
+.gl-stage.native { display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI Variable Display', 'Segoe UI', sans-serif; text-shadow: none }
+.gl-stage.native .phone { position: relative; width: min(100%, calc(var(--fs) * 15)); height: 100%; max-height: calc(var(--fs) * 11); border-radius: calc(var(--fs) * .7);
+  overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 20px 60px -20px #000; font-size: calc(var(--fs) * .5) }
+.gl-stage.native .w { opacity: .5; transition: opacity .2s }
+.gl-stage.native .w.on { opacity: 1 }
+
+/* full screen: the iPhone screens fill the display instead of sitting in a small card */
+.full .gl-stage.native .phone { width: min(92%, calc(var(--fs) * 22)); max-height: none; height: 100%; border-radius: 0; background: transparent; box-shadow: none; overflow: visible }
+.full .st-messages .hd { background: transparent; border: 0; justify-content: center; flex-direction: column; text-align: center; gap: .3em }
+.full .st-messages .hd small { font-size: .8em }
+.full .st-messages .th { padding: .5em 0 }
+.full .st-messages .bb { font-size: 1.25em }
+.full .st-money .phone { background: transparent; padding: 0 } .full .st-money .pay { border-bottom-color: rgba(255,255,255,.08); background: rgba(10,12,10,.35); border-radius: .9em; padding: .7em .9em; margin-bottom: .35em; backdrop-filter: blur(14px) }
+.full .st-money .bal { text-align: center; border: 0 } .full .st-money .bal b { font-size: 2.6em }
+.full .st-map .phone { width: min(92%, calc(var(--fs) * 26)); border-radius: calc(var(--fs) * .8); overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 30px 90px -20px #000 }
+.full .st-notifications .phone { background: transparent }
+.full .st-notifications .clk { display: none } /* the full-screen view shows its own lock-screen clock */
+.full .st-notifications .stk { width: min(100%, calc(var(--fs) * 16)); margin-top: 0 }
+.full .st-notifications .nt { background: rgba(255,255,255,.14); transform: translateY(calc(var(--k) * 4.6em)) }
+.full .st-notifications .nt.back { transform: translateY(calc(3 * 4.6em + (var(--k) - 3) * .55em)) scale(calc(1 - (var(--k) - 2) * .05)) }
+.full .gl-stage .ed { max-width: calc(var(--fs) * 30) }
+
+/* messages */
+.st-messages .phone { background: #000; display: flex; flex-direction: column }
+.st-messages .hd { display: flex; align-items: center; gap: .6em; padding: .7em .9em; background: rgba(28,28,30,.95); border-bottom: 1px solid #222; color: #fff }
+.st-messages .hd small { display: block; color: #8e8e93; font-size: .75em }
+.st-messages .av { width: 2.2em; height: 2.2em; border-radius: 50%; background: linear-gradient(#a0a6b3, #6c717d); display: grid; place-items: center; font-weight: 700; font-size: .85em }
+.st-messages .th { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: .3em; padding: .7em .8em; overflow: hidden }
+.st-messages .bb { max-width: 78%; padding: .45em .8em; border-radius: 1.1em; line-height: 1.25; font-size: 1.05em; animation: msgin .35s cubic-bezier(.2,1.3,.4,1) both }
+.st-messages .bb.me { align-self: flex-end; background: #0a84ff; color: #fff; transform-origin: right bottom }
+.st-messages .bb.me.tail { border-bottom-right-radius: .3em }
+.st-messages .bb.them { align-self: flex-start; background: #26262a; color: #fff }
+.st-messages .typing { display: flex; gap: .25em; padding: .65em .8em }
+.st-messages .typing i { width: .45em; height: .45em; border-radius: 50%; background: #8e8e93; animation: dot 1.2s infinite }
+.st-messages .typing i:nth-child(2) { animation-delay: .18s } .st-messages .typing i:nth-child(3) { animation-delay: .36s }
+.st-messages .dl { align-self: flex-end; font-size: .7em; color: #8e8e93; margin-top: -.1em }
+@keyframes msgin { from { opacity: 0; transform: translateY(.8em) scale(.85) } to { opacity: 1; transform: none } }
+@keyframes dot { 0%, 60%, 100% { opacity: .3; transform: translateY(0) } 30% { opacity: 1; transform: translateY(-.25em) } }
+
+/* money */
+.st-money .phone { background: linear-gradient(#0b0f0c, #050706); color: #fff; padding: .9em }
+.st-money .bal { padding: .2em .2em .7em; border-bottom: 1px solid #1b241d } .st-money .bal small { color: #7d8b80; font-size: .75em; display: block }
+.st-money .bal b { font-size: 1.9em; letter-spacing: -.02em }
+.st-money .list { display: flex; flex-direction: column; gap: .2em; padding-top: .4em }
+.st-money .pay { display: flex; align-items: center; gap: .7em; padding: .55em .2em; border-bottom: 1px solid #141a16; animation: msgin .4s cubic-bezier(.2,1.2,.4,1) both }
+.st-money .pay:not(:first-child) { opacity: .55 }
+.st-money .pv { width: 2.3em; height: 2.3em; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700 }
+.st-money .pm { flex: 1; min-width: 0 } .st-money .pm b { font-size: .9em } .st-money .pm b span { color: #7d8b80; font-weight: 400 }
+.st-money .memo { font-size: 1.05em; font-weight: 600; line-height: 1.2; margin: .1em 0 } .st-money .pm small { color: #5f6b62; font-size: .7em }
+.st-money .amt { font-weight: 700; font-size: 1.05em } .st-money .amt.in { color: #32d74b }
+
+/* map */
+.st-map .phone { background: #1b1f25 }
+.st-map .mapv { position: absolute; inset: 0; width: 100%; height: 100% }
+.st-map .cam { transition: transform 1.1s cubic-bezier(.4,0,.2,1) }
+.st-map .ground { fill: #1c2027 } .st-map .water { fill: #142a40 } .st-map .park { fill: #1d3a2a }
+.st-map .rd { stroke: #2a3039; stroke-width: 3 } .st-map .rd.big { stroke: #39404b; stroke-width: 6 } .st-map .rd.main { stroke: #6b5a33; stroke-width: 9 }
+.st-map .walk { fill: none; stroke: #0a84ff; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2 9; filter: drop-shadow(0 0 4px #0a84ff) }
+.st-map .pin { transition: transform 1.1s cubic-bezier(.4,0,.2,1) } .st-map .pin path { fill: #ff3b30; stroke: #fff; stroke-width: 2 } .st-map .pin circle { fill: #fff }
+.st-map .card { position: absolute; left: 6%; right: 6%; bottom: 6%; background: rgba(28,28,30,.92); backdrop-filter: blur(10px); border-radius: .9em; padding: .7em .9em; color: #fff }
+.st-map .card small { color: #8e8e93; font-size: .7em } .st-map .card .ly { font-weight: 700; font-size: 1.1em; line-height: 1.2; margin: .15em 0 }
+.st-map .card .loc { color: #8e8e93; font-size: .75em } .st-map .card.pop { animation: msgin .45s cubic-bezier(.2,1.2,.4,1) }
+
+/* notifications */
+.st-notifications .phone { background: radial-gradient(120% 80% at 30% 0%, #6d4bb8, #2a1d55 55%, #120c24); color: #fff; display: flex; flex-direction: column; align-items: center }
+.st-notifications .clk { text-align: center; padding-top: .7em } .st-notifications .clk small { display: block; font-size: .8em; opacity: .85 }
+.st-notifications .clk b { font-size: 3.4em; font-weight: 600; letter-spacing: -.03em; line-height: 1 }
+.st-notifications .stk { position: relative; width: 92%; flex: 1; margin-top: .5em }
+.st-notifications .nt { position: absolute; left: 0; right: 0; top: 0; display: flex; gap: .6em; padding: .65em .75em; border-radius: 1.1em;
+  background: rgba(255,255,255,.16); backdrop-filter: blur(16px); transition: transform .5s cubic-bezier(.2,.9,.3,1), opacity .5s;
+  transform: translateY(calc(var(--k) * 4.3em)); animation: ntin .5s cubic-bezier(.2,1.1,.4,1) both }
+.st-notifications .nt.back { transform: translateY(calc(3 * 4.3em + (var(--k) - 3) * .5em)) scale(calc(1 - (var(--k) - 2) * .05)); opacity: .5 }
+.st-notifications .ai { width: 2.1em; height: 2.1em; flex: none; border-radius: .55em; display: grid; place-items: center }
+.st-notifications .nb { flex: 1; min-width: 0 } .st-notifications .nh { display: flex; justify-content: space-between; font-size: .85em } .st-notifications .nh small { opacity: .6 }
+.st-notifications .nl { font-size: 1em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.st-notifications .wid { align-items: center } .st-notifications .wa { width: 2.6em; height: 2.6em; border-radius: .5em; background: #333 center/cover; flex: none }
+.st-notifications .wid small { font-size: .65em; opacity: .7; display: block } .st-notifications .wid b { display: block } .st-notifications .wid span { font-size: .8em; opacity: .75 }
+@keyframes ntin { from { opacity: 0; transform: translateY(-1.5em) scale(.95) } }
