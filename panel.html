@@ -1,0 +1,386 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Glowrim</title>
+<link rel="stylesheet" href="engine.css">
+<style>
+  @property --c1 { syntax: '<color>'; inherits: true; initial-value: #ff3d81; }
+  @property --c2 { syntax: '<color>'; inherits: true; initial-value: #4d7cff; }
+  :root{transition:--c1 1.2s,--c2 1.2s}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:#07070a;color:#e8e8ee;font:14px "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;user-select:none;display:flex;overflow:hidden}
+  ::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:#22222c;border-radius:10px;border:3px solid #07070a}
+  button{font:inherit}
+  /* ---------- left: preview + styles ---------- */
+  .left{flex:1;min-width:0;overflow-y:auto;padding:16px 18px 30px}
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .brand{font-size:18px;font-weight:800;letter-spacing:-.3px;background:linear-gradient(90deg,var(--c1),var(--c2));-webkit-background-clip:text;color:transparent}
+  .stat{display:flex;gap:8px}
+  .stat button{display:flex;align-items:center;gap:7px;border:0;background:#15151c;color:#ccc;border-radius:99px;padding:6px 12px;cursor:pointer;font-size:12px}
+  .stat button:hover{background:#1d1d26}
+  .dot{width:9px;height:9px;border-radius:50%;background:#666;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+  .dot.ok{background:#32d74b}.dot.warn{background:#ffb020}.dot.bad{background:#ff453a}
+  .hero{position:relative;height:400px;border-radius:22px;overflow:hidden;background:#0b0b10;box-shadow:0 0 0 1px #1b1b24}
+  .hero .bg{position:absolute;inset:-20%;background:radial-gradient(60% 60% at 30% 30%,color-mix(in srgb,var(--g1) 55%,transparent),transparent),radial-gradient(60% 60% at 80% 70%,color-mix(in srgb,var(--g2) 45%,transparent),transparent);filter:blur(30px);transition:background 1s}
+  .hero .shade{position:absolute;inset:0;background:linear-gradient(transparent 45%,rgba(0,0,0,.85))}
+  #pv{position:absolute;left:8%;right:8%;top:5%;height:62%}
+  .hero .info{position:absolute;left:28px;bottom:24px;right:28px}
+  .hero .fam{font-size:12px;color:#bbb} .hero h2{margin:2px 0 4px;font:600 34px Georgia,"Palatino Linotype",serif;letter-spacing:-.5px}
+  .hero p{margin:0 0 14px;color:#cfcfd6;font-size:13px;max-width:460px}
+  .hero .acts{display:flex;gap:10px;align-items:center}
+  .sel{border:0;background:#fff;color:#000;font-weight:700;padding:9px 20px;border-radius:99px;cursor:pointer}
+  .sel.cur{background:rgba(255,255,255,.18);color:#fff;cursor:default}
+  .pin{width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;font-size:16px}
+  .pin.on{background:#fff;color:#000}
+  .arrow{position:absolute;top:38%;width:40px;height:56px;border:0;background:none;color:#fff;font-size:34px;opacity:.6;cursor:pointer}
+  .arrow:hover{opacity:1}.arrow.l{left:6px}.arrow.r{right:6px}
+  .dots{position:absolute;right:26px;bottom:34px;display:flex;gap:5px}
+  .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer}.dots i.on{background:#fff}
+  h3{margin:22px 0 4px;font-size:16px} .famh{display:flex;align-items:baseline;gap:8px;margin:16px 0 8px;color:#bbb;font-weight:700}
+  .famh small{color:#666;font-weight:400}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .tile{position:relative;height:96px;border-radius:14px;cursor:pointer;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.06);transition:transform .15s,box-shadow .15s}
+  .tile:hover{transform:translateY(-2px)}
+  .tile.prev{box-shadow:0 0 0 2px #fff}
+  .tile b{position:absolute;left:12px;bottom:10px;font-size:13px;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+  .tile .badge{position:absolute;top:8px;right:8px;display:flex;gap:4px}
+  .tile .badge span{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.45);display:grid;place-items:center;font-size:11px}
+  .tile .word{position:absolute;left:12px;top:12px;font-weight:800;font-size:15px;opacity:.85}
+
+  /* ---------- right: now playing + settings ---------- */
+  .right{width:360px;flex:none;border-left:1px solid #15151c;overflow-y:auto;padding:16px 16px 30px;background:#0a0a0e}
+  .player{position:relative;border-radius:18px;padding:14px;background:#121218;overflow:hidden;box-shadow:0 0 0 1px #1e1e27,0 0 40px -14px var(--c1)}
+  .player::before{content:"";position:absolute;inset:-40%;background:var(--bg) center/cover;filter:blur(40px) saturate(1.4);opacity:.35}
+  .player>*{position:relative}
+  .prow{display:flex;gap:12px;align-items:center}
+  .art{width:72px;height:72px;border-radius:12px;background:#22222b center/cover;flex:none;box-shadow:0 8px 24px -8px #000}
+  .meta{min-width:0;flex:1} .tt{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .ar{color:#a9a9b6;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .src{font-size:11px;color:#777;margin-top:3px}
+  .bar{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11px;color:#888;font-variant-numeric:tabular-nums}
+  .track{flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
+  .fill{height:100%;width:0;background:linear-gradient(90deg,var(--c1),var(--c2))}
+  .ctrl{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:10px}
+  .ctrl button{border:0;background:rgba(255,255,255,.08);color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;display:grid;place-items:center;font-size:11px;font-weight:700}
+  .ctrl button:hover{background:rgba(255,255,255,.16)} .ctrl button:disabled{opacity:.3;cursor:default}
+  .ctrl button.big{width:48px;height:48px;background:#fff;color:#000}
+  .ctrl svg{width:16px;height:16px;fill:currentColor}.ctrl .big svg{width:20px;height:20px}
+  .chips{display:flex;justify-content:center;gap:6px;margin-top:12px;flex-wrap:wrap}
+  .chip{border:0;font-size:12px;padding:6px 11px;border-radius:99px;background:rgba(255,255,255,.08);color:#ccc;cursor:pointer}
+  .chip.on{background:linear-gradient(90deg,var(--c1),var(--c2));color:#fff}
+  .tabs{display:flex;background:#15151b;border-radius:11px;padding:3px;margin:14px 0 4px}
+  .tabs button{flex:1;border:0;background:none;color:#999;padding:7px 2px;border-radius:9px;cursor:pointer;font-size:12.5px}
+  .tabs button.on{background:#2a2a35;color:#fff}
+  .pane{display:none}.pane.on{display:block}
+  .card{background:#111117;border:1px solid #1a1a22;border-radius:14px;padding:4px 14px;margin-top:10px}
+  .card h4{margin:12px 0 2px;font-size:12px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+  .row{display:flex;justify-content:space-between;align-items:center;margin:11px 0;gap:10px}
+  .row label{color:#ccc} .row label small{display:block;color:#666;font-size:11px}
+  .val{color:#777;font-size:12px;width:46px;text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{flex:1;accent-color:var(--c1);min-width:0}
+  input[type=color]{width:30px;height:30px;border:0;border-radius:50%;background:none;padding:0;cursor:pointer}
+  input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-webkit-color-swatch{border:1px solid #333;border-radius:50%}
+  .seg{display:flex;background:#17171d;border-radius:9px;padding:3px;margin:10px 0}
+  .seg button{flex:1;border:0;background:none;color:#999;padding:6px 2px;border-radius:7px;cursor:pointer;font-size:12px}
+  .seg button.on{background:#2a2a35;color:#fff}
+  .sw{position:relative;width:40px;height:23px;background:#2a2a35;border-radius:12px;cursor:pointer;flex:none}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:#fff;transition:.15s}
+  .sw.on{background:linear-gradient(90deg,var(--c1),var(--c2))}.sw.on::after{left:20px}
+  .fonts button{display:flex;justify-content:space-between;width:100%;border:0;background:none;color:#ddd;padding:9px 8px;border-radius:8px;cursor:pointer;font-size:16px;text-align:left}
+  .fonts button:hover{background:#1a1a22}.fonts button.on{background:#22222c}
+  .btn{border:1px solid #2a2a35;background:#17171d;color:#ddd;border-radius:99px;padding:6px 12px;cursor:pointer;font-size:12px}
+  .btn:hover{background:#1e1e27}
+  .manual.off{opacity:.35;pointer-events:none}
+  .pal{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 12px}.pal button{width:26px;height:26px;border-radius:50%;border:2px solid #222;cursor:pointer}
+  .chk{display:flex;gap:10px;align-items:flex-start;margin:11px 0}
+  .chk i{width:18px;height:18px;border-radius:50%;flex:none;display:grid;place-items:center;font-style:normal;font-size:11px;color:#000;background:#444;margin-top:1px}
+  .chk i.ok{background:#32d74b}.chk i.warn{background:#ffb020}.chk i.bad{background:#ff453a;color:#fff}
+  .chk small{display:block;color:#777;font-size:11px}
+  .nudge{display:flex;align-items:center;justify-content:space-between;background:#16161d;border-radius:14px;padding:10px;margin:8px 0}
+  .nudge button{width:40px;height:40px;border-radius:50%;border:0;background:#24242e;color:#fff;cursor:pointer;font-size:12px}
+  .nudge div{text-align:center}.nudge b{display:block;font-size:22px}.nudge small{color:#888;font-size:11px}
+  .hint{font-size:11px;color:#666;line-height:1.5}
+</style></head><body>
+
+<div class="left">
+  <div class="top">
+    <div class="brand">Glowrim</div>
+    <div class="stat">
+      <button id="statBtn" title="Player status"><span class="dot" id="statDot"></span><span id="statTxt">Connecting…</span></button>
+      <button id="stageBtn" title="Full-screen lyrics (Ctrl+Alt+L)">⛶ Full screen</button>
+      <button id="reBtn" title="Reconnect to the player">⟳</button>
+    </div>
+  </div>
+
+  <div class="hero" id="hero">
+    <div class="bg"></div><div class="shade"></div>
+    <div id="pv"></div>
+    <button class="arrow l" id="prevS">‹</button><button class="arrow r" id="nextS">›</button>
+    <div class="info">
+      <div class="fam" id="hFam"></div>
+      <h2 id="hName"></h2>
+      <p id="hDesc"></p>
+      <div class="acts"><button class="sel" id="selBtn">Select</button><button class="pin" id="pinBtn" title="Pin to the tray menu">📌</button>
+        <button class="sel" id="fullBtn" style="background:rgba(255,255,255,.14);color:#fff">⛶ Full screen</button></div>
+    </div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <h3>All styles</h3>
+  <div id="gallery"></div>
+</div>
+
+<div class="right">
+  <div class="player" id="player">
+    <div class="prow"><div class="art" id="art"></div>
+      <div class="meta"><div class="tt" id="title">Nothing playing</div><div class="ar" id="artist">Play something in Spotify, Apple Music or a browser</div><div class="src" id="src"></div></div></div>
+    <div class="bar"><span id="cur">0:00</span><div class="track"><div class="fill" id="fill"></div></div><span id="dur">0:00</span></div>
+    <div class="ctrl">
+      <button id="back15" title="Back 15 seconds">−15</button>
+      <button id="prev" title="Previous"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button id="play" class="big" title="Play / pause"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4v16l13-8z"/></svg></button>
+      <button id="next" title="Next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+      <button id="fwd15" title="Forward 15 seconds">+15</button>
+    </div>
+    <div class="chips">
+      <button class="chip" data-k="lyrics">💬 Lyrics</button>
+      <button class="chip" data-k="enabled">✦ Glow</button>
+      <button class="chip" data-k="albumColors">🎨 Album colors</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-t="look" class="on">Look</button><button data-t="show">Show</button><button data-t="glow">Glow</button><button data-t="status">Status</button><button data-t="app">App</button>
+  </div>
+
+  <!-- LOOK: size, font, aesthetics -->
+  <div class="pane on" id="p-look">
+    <div class="card"><h4>Size</h4>
+      <div class="row"><span style="font-size:12px">A</span><input type="range" data-n="lyricScale" min="50" max="200" step="5"><span style="font-size:20px">A</span></div>
+      <div class="row"><b id="scaleVal">100%</b><button class="btn" id="scaleReset">Reset</button></div>
+    </div>
+    <div class="card"><h4>Font</h4><div class="fonts" id="fonts"></div></div>
+    <div class="card"><h4>Aesthetics</h4>
+      <div class="row"><label>Match the album cover<small>Colours follow whatever is playing.</small></label><div class="sw" data-k="lyricMatchAlbum"></div></div>
+      <div class="manual" id="lcol">
+        <div class="row"><label>Lyric text</label><input type="color" data-c="text"></div>
+        <div class="row"><label>Highlight</label><input type="color" data-c="hl"></div>
+        <div class="row"><label>Secondary text</label><input type="color" data-c="sec"></div>
+      </div>
+      <div class="row"><span class="hint">The Native Design styles keep their own colours.</span><button class="btn" id="resetColors">Reset colors</button></div>
+    </div>
+  </div>
+
+  <!-- SHOW: desktop lyrics, stage, displays -->
+  <div class="pane" id="p-show">
+    <div class="card"><h4>On the desktop</h4>
+      <div class="row"><label>Show lyrics while unlocked<small>A floating lyrics window over everything.</small></label><div class="sw" data-k="lyrics"></div></div>
+      <div class="row"><label>Unlock to move / resize</label><div class="sw" data-k="lyricLock" data-invert="1"></div></div>
+      <div class="row"><label>Dark backdrop</label><div class="sw" data-k="lyricBackdrop"></div></div>
+      <div class="row"><label>Position</label><button class="btn" id="resetPos">Reset to bottom-center</button></div>
+    </div>
+    <div class="card"><h4>Full-screen lyrics</h4>
+      <div class="hint" style="margin-top:6px">The main lyrics view: blurred cover art, a clock and your style, with Style · Size · Font · Aesthetics · Display along the top. Ctrl + Alt + L opens and closes it from anywhere.</div>
+      <div class="row"><label>Open full screen when Glowrim starts<small>Starting with Windows stays quietly in the tray.</small></label><div class="sw" data-k="openFullOnLaunch"></div></div>
+      <div class="row"><label>Background</label><div class="seg" data-k="stageBg" style="width:170px;margin:0"><button data-v="art">Album art</button><button data-v="dark">Dark</button></div></div>
+      <div class="row"><label>Show the clock</label><div class="sw" data-k="stageClock"></div></div>
+      <div class="row"><label>Keep the screen awake<small>While music is playing.</small></label><div class="sw" data-k="keepAwake"></div></div>
+      <h4>Show on</h4><div id="stageDisp"></div>
+      <div class="row"><span></span><button class="btn" id="stageNow">⛶ Open full screen</button></div>
+    </div>
+  </div>
+
+  <!-- GLOW -->
+  <div class="pane" id="p-glow">
+    <div class="card"><h4>Animation</h4>
+      <div class="seg" data-k="glowMode"><button data-v="default">Default</button><button data-v="music">Music Sync</button><button data-v="idle">Idle</button><button data-v="none">None</button></div>
+      <div class="seg" data-k="glowColors" data-num="1"><button data-v="1">1 color</button><button data-v="2">2 colors</button></div>
+      <div class="row"><label>Follow album colors</label><div class="sw" data-k="albumColors"></div></div>
+      <div class="manual" id="gcol">
+        <div class="row"><label>Primary</label><input type="color" id="color1"></div>
+        <div class="row"><label>Secondary</label><input type="color" id="color2"></div>
+        <div class="pal" id="pal"></div>
+      </div>
+    </div>
+    <div class="card"><h4>Shape</h4>
+      <div class="row"><label>Thickness</label><input type="range" data-n="thickness" min="2" max="60"><span class="val"></span></div>
+      <div class="row"><label>Glow</label><input type="range" data-n="glow" min="0" max="140"><span class="val"></span></div>
+      <div class="row"><label>Brightness</label><input type="range" data-n="idleBrightness" min="0.1" max="1" step="0.05"><span class="val"></span></div>
+      <div class="row"><label>Reactivity</label><input type="range" data-n="intensity" min="0.3" max="2" step="0.05"><span class="val"></span></div>
+      <div class="row"><label>Speed</label><input type="range" data-n="speed" min="0.2" max="4" step="0.1"><span class="val"></span></div>
+    </div>
+    <div class="card"><h4>Displays</h4>
+      <div class="seg" id="gdSeg"><button data-v="all">All</button><button data-v="main">Main</button><button data-v="pick">Choose…</button></div>
+      <div id="gdPick"></div>
+      <div class="row"><label>Show over full-screen apps<small>Videos and borderless-windowed games. Exclusive full-screen games always cover it.</small></label><div class="sw" data-k="glowOverFullscreen"></div></div>
+    </div>
+  </div>
+
+  <!-- STATUS: Verci-style checklist + nudge -->
+  <div class="pane" id="p-status">
+    <div class="card">
+      <div class="chk"><i id="c1"></i><div><b id="c1t">Player is open</b><small id="c1s">Spotify, Apple Music, a browser — anything in Windows' media controls.</small></div></div>
+      <div class="chk"><i id="c2"></i><div><b>Glowrim can read what's playing</b><small id="c2s">Through Windows media controls; no account needed.</small></div></div>
+      <div class="chk"><i id="c3"></i><div><b id="c3t">What's playing</b><small id="c3s">The track Glowrim sees.</small></div></div>
+      <div class="chk"><i id="c4"></i><div><b id="c4t">Lyrics found</b><small id="c4s">Whether the song has lyrics, and how they are timed.</small></div></div>
+      <div class="nudge"><button id="nMinus">−0.5</button><div><b id="nVal">0 s</b><small>Lyrics on their own timing<br>Resets with the next song.</small></div><button id="nPlus">+0.5</button></div>
+      <div class="row"><label>Bluetooth / device delay<small>Applies to every song.</small></label><input type="range" data-n="lyricOffset" min="-2" max="2" step="0.1" style="max-width:110px"><span class="val"></span></div>
+      <div class="row"><span class="hint">Something stuck?</span><button class="btn" id="reBtn2">Reconnect to the player</button></div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div class="pane" id="p-app">
+    <div class="card">
+      <div class="row"><label>Start with Windows</label><div class="sw" data-k="startup"></div></div>
+      <div class="hint" style="margin:6px 0 12px">
+        Glowrim lives in the tray next to the clock; closing this window keeps it running.<br>
+        Lyrics come from <b>LRCLIB</b>, a free open lyrics database — only the song title, artist and length are sent.<br>
+        The glow listens to your PC's sound output to find the beat — never the microphone.<br>
+        It rests while your PC is locked or asleep.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="engine.js"></script>
+<script>
+const $ = id => document.getElementById(id), root = document.documentElement.style;
+let S = null, T = { pos: 0, dur: 0, upd: 0, status: 'None' }, N = {}, ST = {}, DISP = [];
+const fmt = ms => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const FONTS = ['Segoe UI Variable Display', 'Bahnschrift', 'Georgia', 'Cambria', 'Arial Black', 'Palatino Linotype', 'Cascadia Code'];
+const SAMPLE = { ship: 'IN THE CITY', fisheye: 'the', visual: '🔥 fire', fisheyeVisual: 'moon 🌙', codestyle: 'sing("…")', codestyleVisual: 'say("✨")',
+  branches: '•—•—•', web: '✳', constellation: '✦ ✧ ✦', messages: '💬', money: '+$24', map: '📍', notifications: '🔔', stack: 'Aa', karaoke: 'sing', minimal: '—' };
+
+// ---------- live preview + gallery ----------
+const preview = new LyricsView($('pv'), { demo: true, scale: 0.78 });
+let pIdx = 0;
+function showPreview(i) {
+  pIdx = (i + LYRIC_STYLES.length) % LYRIC_STYLES.length; const st = LYRIC_STYLES[pIdx];
+  preview.setStyle(st.key);
+  $('hFam').textContent = st.native ? 'iPhone screens' : st.family;
+  $('hName').textContent = st.name; $('hDesc').textContent = st.desc;
+  $('hero').style.setProperty('--g1', st.grad[0]); $('hero').style.setProperty('--g2', st.grad[1]);
+  document.querySelectorAll('.tile').forEach(t => t.classList.toggle('prev', t.dataset.k === st.key));
+  [...$('dots').children].forEach((d, k) => d.classList.toggle('on', k === pIdx));
+  syncActs();
+}
+function syncActs() {
+  if (!S) return; const k = LYRIC_STYLES[pIdx].key, cur = S.lyricStyle === k;
+  $('selBtn').textContent = cur ? '✓ Selected' : 'Select'; $('selBtn').classList.toggle('cur', cur);
+  $('pinBtn').classList.toggle('on', (S.pinnedStyles || []).includes(k));
+}
+LYRIC_STYLES.forEach((s, k) => { const d = document.createElement('i'); d.onclick = () => showPreview(k); $('dots').appendChild(d); });
+const fams = [...new Set(LYRIC_STYLES.map(s => s.family))];
+fams.forEach(f => {
+  const items = LYRIC_STYLES.filter(s => s.family === f);
+  const h = document.createElement('div'); h.className = 'famh'; h.innerHTML = `${f} <small>${items.length}</small>`; $('gallery').appendChild(h);
+  const g = document.createElement('div'); g.className = 'tiles'; $('gallery').appendChild(g);
+  items.forEach(s => { const t = document.createElement('div'); t.className = 'tile'; t.dataset.k = s.key;
+    t.style.background = `linear-gradient(135deg, ${s.grad[0]}, ${s.grad[1]})`;
+    t.innerHTML = `<div class="word">${SAMPLE[s.key] || ''}</div><b>${s.name}</b><div class="badge"></div>`;
+    t.onclick = () => { showPreview(LYRIC_STYLES.indexOf(s)); $('hero').scrollIntoView({ behavior: 'smooth' }); }; g.appendChild(t); });
+});
+function syncTiles() { document.querySelectorAll('.tile').forEach(t => { const k = t.dataset.k;
+  t.querySelector('.badge').innerHTML = (S.lyricStyle === k ? '<span>✓</span>' : '') + ((S.pinnedStyles || []).includes(k) ? '<span>📌</span>' : ''); }); }
+$('prevS').onclick = () => showPreview(pIdx - 1); $('nextS').onclick = () => showPreview(pIdx + 1);
+addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.key === 'ArrowLeft') showPreview(pIdx - 1); if (e.key === 'ArrowRight') showPreview(pIdx + 1); });
+$('selBtn').onclick = () => api.set({ lyricStyle: LYRIC_STYLES[pIdx].key });
+$('pinBtn').onclick = () => { const k = LYRIC_STYLES[pIdx].key, p = new Set(S.pinnedStyles || []); p.has(k) ? p.delete(k) : p.add(k); api.set({ pinnedStyles: [...p] }); };
+
+// ---------- controls ----------
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => openTab(b.dataset.t));
+function openTab(t) { document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x.dataset.t === t));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'p-' + t)); }
+$('statBtn').onclick = () => openTab('status');
+$('prev').onclick = () => api.control('prev'); $('next').onclick = () => api.control('next'); $('play').onclick = () => api.control('toggle');
+$('back15').onclick = () => api.control('seek', -15000); $('fwd15').onclick = () => api.control('seek', 15000);
+$('reBtn').onclick = $('reBtn2').onclick = () => api.reconnect();
+$('stageBtn').onclick = $('stageNow').onclick = () => api.stage(true);
+$('fullBtn').onclick = () => { api.set({ lyricStyle: LYRIC_STYLES[pIdx].key }); api.stage(true); };
+$('resetPos').onclick = () => api.set({ resetLyricPos: true });
+$('resetColors').onclick = () => api.set({ resetColors: true });
+$('scaleReset').onclick = () => api.set({ lyricScale: 100 });
+$('nMinus').onclick = () => api.set({ songNudge: (S.songNudge || 0) - 0.5 });
+$('nPlus').onclick = () => api.set({ songNudge: (S.songNudge || 0) + 0.5 });
+document.querySelectorAll('.sw, .chip').forEach(el => el.onclick = () => { const k = el.dataset.k, on = el.classList.contains('on'); api.set({ [k]: el.dataset.invert ? on : !on }); });
+document.querySelectorAll('.seg[data-k]').forEach(seg => seg.querySelectorAll('button').forEach(b => b.onclick = () => api.set({ [seg.dataset.k]: seg.dataset.num ? +b.dataset.v : b.dataset.v })));
+document.querySelectorAll('input[type=range]').forEach(r => r.oninput = () => api.set({ [r.dataset.n]: +r.value }));
+['color1', 'color2'].forEach(k => $(k).oninput = e => api.set({ [k]: e.target.value }));
+document.querySelectorAll('input[data-c]').forEach(i => i.oninput = () => api.set({ lyricColors: { ...S.lyricColors, [i.dataset.c]: i.value } }));
+FONTS.forEach(f => { const b = document.createElement('button'); b.dataset.f = f; b.style.fontFamily = `'${f}'`; b.innerHTML = `${f.replace(' Variable Display', '')}<span></span>`;
+  b.onclick = () => api.set({ lyricFont: f }); $('fonts').appendChild(b); });
+[['#ff3d81','#4d7cff'],['#00e5ff','#7c4dff'],['#ff9f1c','#ff2e63'],['#39ff88','#00b3ff'],['#ffffff','#9aa7ff'],['#ff0000','#ff7a00'],['#f72585','#4cc9f0']]
+  .forEach(([a, b]) => { const el = document.createElement('button'); el.style.background = `linear-gradient(135deg,${a},${b})`; el.onclick = () => api.set({ color1: a, color2: b }); $('pal').appendChild(el); });
+document.querySelectorAll('#gdSeg button').forEach(b => b.onclick = () => {
+  if (b.dataset.v === 'pick') { const d = DISP.find(x => !x.primary) || DISP[0]; if (d) api.set({ glowDisplays: d.id }); }
+  else api.set({ glowDisplays: b.dataset.v }); });
+
+function renderDisplays() {
+  if (!S) return;
+  const pick = S.glowDisplays !== 'all' && S.glowDisplays !== 'main';
+  document.querySelectorAll('#gdSeg button').forEach(b => b.classList.toggle('on', pick ? b.dataset.v === 'pick' : b.dataset.v === S.glowDisplays));
+  $('gdPick').innerHTML = pick ? DISP.map(d => `<div class="row"><label>${d.label}<small>${d.size}${d.primary ? ' · main' : ''}</small></label><div class="sw ${S.glowDisplays === d.id ? 'on' : ''}" data-gd="${d.id}"></div></div>`).join('') : '';
+  $('gdPick').querySelectorAll('[data-gd]').forEach(el => el.onclick = () => api.set({ glowDisplays: el.dataset.gd }));
+  const ids = (S.stageDisplays || []).map(String);
+  $('stageDisp').innerHTML = DISP.map(d => { const on = ids.length ? ids.includes(d.id) : d.primary;
+    return `<div class="row"><label>${d.label}<small>${d.size}${d.primary ? ' · main' : ''}</small></label><div class="sw ${on ? 'on' : ''}" data-sd="${d.id}"></div></div>`; }).join('');
+  $('stageDisp').querySelectorAll('[data-sd]').forEach(el => el.onclick = () => {
+    const cur = new Set(ids.length ? ids : DISP.filter(d => d.primary).map(d => d.id)); cur.has(el.dataset.sd) ? cur.delete(el.dataset.sd) : cur.add(el.dataset.sd);
+    api.set({ stageDisplays: [...cur] }); });
+}
+
+// ---------- state from the app ----------
+api.onSettings(s => {
+  const first = !S; S = s; preview.setSettings(s);
+  if (first) showPreview(Math.max(0, LYRIC_STYLES.findIndex(x => x.key === s.lyricStyle)));
+  document.querySelectorAll('.sw[data-k], .chip').forEach(el => { const v = !!s[el.dataset.k]; el.classList.toggle('on', el.dataset.invert ? !v : v); });
+  document.querySelectorAll('.seg[data-k]').forEach(seg => seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(s[seg.dataset.k]) === b.dataset.v)));
+  document.querySelectorAll('input[type=range]').forEach(r => { if (document.activeElement !== r) r.value = s[r.dataset.n]; const v = r.nextElementSibling; if (v && v.classList.contains('val')) v.textContent = s[r.dataset.n]; });
+  $('scaleVal').textContent = s.lyricScale + '%';
+  $('lcol').classList.toggle('off', s.lyricMatchAlbum); $('gcol').classList.toggle('off', s.albumColors);
+  document.querySelectorAll('input[data-c]').forEach(i => i.value = (s.lyricColors || {})[i.dataset.c] || '#ffffff');
+  $('color1').value = s.color1; $('color2').value = s.color2;
+  document.querySelectorAll('#fonts button').forEach(b => { const on = b.dataset.f === s.lyricFont; b.classList.toggle('on', on); b.lastChild.textContent = on ? '✓' : ''; });
+  $('nVal').textContent = (s.songNudge > 0 ? '+' : '') + (s.songNudge || 0) + ' s';
+  root.setProperty('--c1', s.c1); root.setProperty('--c2', s.c2);
+  syncActs(); syncTiles(); renderDisplays();
+});
+api.onDisplays(d => { DISP = d; renderDisplays(); });
+api.onTab(t => openTab(t));
+api.onNow(n => {
+  N = n; preview.setNow(n); const has = !!n.title;
+  $('title').textContent = has ? n.title : 'Nothing playing';
+  $('artist').textContent = has ? n.artist : 'Play something in Spotify, Apple Music or a browser';
+  $('src').textContent = has ? `${n.status} · ${(n.app || '').replace(/\.exe$/i, '').split('!').pop()}` : '';
+  $('art').style.backgroundImage = n.art ? `url("${n.art}")` : '';
+  $('player').style.setProperty('--bg', n.art ? `url("${n.art}")` : 'none');
+});
+api.onTime(t => { T = t; preview.setTime(t);
+  $('playIcon').innerHTML = t.status === 'Playing' ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>';
+  $('back15').disabled = $('fwd15').disabled = !t.canSeek; });
+api.onLyrics(l => preview.setLyrics(l));
+api.onLevel(v => preview.level(v));
+api.onStatus(st => {
+  ST = st; const app = (st.app || '').replace(/\.exe$/i, '').split('!').pop();
+  const set = (id, cls, sym) => { $(id).className = cls; $(id).textContent = sym; };
+  set('c1', st.app ? 'ok' : 'bad', st.app ? '✓' : '!'); $('c1t').textContent = st.app ? `${app} is open` : 'No player found';
+  $('c1s').textContent = st.app ? 'Glowrim follows the app Windows says is playing.' : 'Open Spotify, Apple Music or a browser and press play.';
+  const h = st.helper; set('c2', h === 'running' ? 'ok' : h === 'starting' ? 'warn' : 'bad', h === 'running' ? '✓' : h === 'starting' ? '…' : '!');
+  $('c2s').textContent = h === 'running' ? 'Reading Windows media controls.' : h === 'starting' ? 'Connecting to Windows media controls…' : 'Not connected — try “Reconnect to the player”.';
+  set('c3', st.title ? 'ok' : 'warn', st.title ? '✓' : '…'); $('c3t').textContent = st.title ? `Playing “${st.title}”` : 'Nothing playing yet'; $('c3s').textContent = st.title ? st.artist : 'Press play in your player.';
+  const L = { synced: [`ok`, '✓', st.timing === 'word' ? 'Lyrics found, timed word by word' : 'Lyrics found, timed line by line', st.timing === 'word' ? 'Real per-word timing.' : `${st.lines} lines · words are lit by an estimate within each line.`],
+    loading: ['warn', '…', 'Finding lyrics…', 'Asking LRCLIB.'], plain: ['warn', '!', 'Lyrics found, not time-synced', 'LRCLIB only has unsynced text for this track.'],
+    instrumental: ['ok', '♪', 'Instrumental', 'This track has no words.'], none: ['bad', '!', 'No lyrics found', 'Niche or very new releases are often missing.'],
+    offline: ['bad', '!', 'Lyrics unavailable', 'Check your internet connection.'] }[st.title ? st.lyrics : 'none'] || ['bad', '!', 'No lyrics', ''];
+  set('c4', L[0], L[1]); $('c4t').textContent = L[2]; $('c4s').textContent = L[3];
+  const ok = st.helper === 'running' && st.title, dot = $('statDot');
+  dot.className = 'dot ' + (ok && st.lyrics === 'synced' ? 'ok' : ok ? 'warn' : st.helper === 'running' ? 'warn' : 'bad');
+  $('statTxt').textContent = ok ? `${app} · ${st.lyrics === 'synced' ? 'Synced' : st.lyrics === 'loading' ? 'Finding lyrics' : 'No synced lyrics'}` : st.helper === 'running' ? 'Waiting for music' : 'Not connected';
+  $('stageBtn').textContent = st.stage ? '⛶ Full screen on' : '⛶ Full screen';
+});
+(function tick() {
+  const p = Math.min(T.dur || 0, T.pos + (T.status === 'Playing' ? Date.now() - T.upd : 0));
+  $('cur').textContent = fmt(p); $('dur').textContent = fmt(T.dur);
+  $('fill').style.width = T.dur ? (p / T.dur * 100).toFixed(2) + '%' : '0';
+  requestAnimationFrame(tick);
+})();
+showPreview(0);
+</script></body></html>
