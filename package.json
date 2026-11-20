@@ -25,7 +25,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win",
+    "dist": "electron-builder --win --publish never",
     "test": "node --test"
   },
   "devDependencies": {
