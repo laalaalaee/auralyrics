@@ -11,6 +11,8 @@ Works with **Spotify, Apple Music, YouTube** and anything else Windows can see p
 ![Version](https://img.shields.io/badge/version-2.0.0-ff5f9e?style=flat-square)
 ![Built with](https://img.shields.io/badge/built%20with-Electron-7b5cff?style=flat-square&logo=electron&logoColor=white)
 ![Status](https://img.shields.io/badge/status-private%20preview-lightgrey?style=flat-square)
+[![Latest release](https://img.shields.io/badge/download-latest%20release-ff5f9e?style=flat-square)](../../releases/latest)
+[![Changelog](https://img.shields.io/badge/changelog-keep%20a%20changelog-7b5cff?style=flat-square)](CHANGELOG.md)
 
 <br>
 
@@ -102,7 +104,7 @@ A main window with a live preview of every style, a gallery, the player, and all
 
 ## Getting started
 
-1. Install Auralyrics (`Auralyrics-Setup-<version>.exe`, or the portable build) from the latest GitHub Release.
+1. Download the latest release from the [Releases page](../../releases/latest): `Auralyrics-Setup-<version>.exe` to install, or `Auralyrics-<version>-portable.exe` to run without installing. Verify the download against `SHA256SUMS.txt` on the same page. Builds are not code-signed yet, so Windows SmartScreen may ask you to confirm ("More info" → "Run anyway").
 2. Play something in Spotify, Apple Music or a browser tab.
 3. Press **Ctrl + Alt + L** for full-screen lyrics.
 
