@@ -25,10 +25,11 @@ const STYLE_NAMES = {
   branches: 'Branches', web: 'Web', constellation: 'Constellation', messages: 'Native Design', money: 'Native Design Money', map: 'Native Design Map',
   notifications: 'Native Design Notifications', stack: 'Stack', karaoke: 'Karaoke', minimal: 'Minimal', poster: 'Poster'
 };
+const GLOW_STYLES = [['rim', 'Rim'], ['corners', 'Corners'], ['orbit', 'Orbit'], ['twin', 'Twin orbit'], ['bars', 'Top & bottom']];
 const DEFAULTS = {
   v: 3,
   // glow
-  enabled: true, glowMode: 'music', glowColors: 2, color1: '#ff3d81', color2: '#4d7cff', albumColors: true,
+  enabled: true, glowMode: 'music', glowStyle: 'rim', glowColors: 2, color1: '#ff3d81', color2: '#4d7cff', albumColors: true,
   thickness: 10, glow: 60, intensity: 1.0, speed: 1.0, idleBrightness: 0.8, glowDisplays: 'all', glowOverFullscreen: true,
   // lyrics
   lyrics: true, lyricStyle: 'visual', lyricShuffle: 'off',   // off | song (new style every song) | minute (and every minute)
@@ -57,6 +58,7 @@ function load() {
     settings = { ...settings, ...s, v: DEFAULTS.v };
     if (!STYLE_NAMES[settings.lyricStyle]) settings.lyricStyle = DEFAULTS.lyricStyle;
     if (!['off', 'song', 'minute'].includes(settings.lyricShuffle)) settings.lyricShuffle = 'off';
+    if (!GLOW_STYLES.some(g => g[0] === settings.glowStyle)) settings.glowStyle = 'rim';
   } catch {}
 }
 let saveT;
@@ -192,7 +194,8 @@ function buildLyricsWin() {
 function applyLock() {
   if (!alive(lyricsWin)) return;
   const locked = settings.lyricLock;
-  lyricsWin.setIgnoreMouseEvents(locked); lyricsWin.setFocusable(!locked); lyricsWin.setResizable(!locked);
+  // locked = click-through, but mouse moves are still forwarded so the page can reveal its hover bar (see 'lyricsHit')
+  lyricsWin.setIgnoreMouseEvents(locked, locked ? { forward: true } : undefined); lyricsWin.setFocusable(!locked); lyricsWin.setResizable(!locked);
 }
 function updateLyricsVisibility() {
   if (!alive(lyricsWin)) return;
@@ -403,6 +406,7 @@ function refreshMenuNow() {
     { label: 'Text size', submenu: [70, 85, 100, 115, 130, 150, 175].map(p => ({ label: p + '%', type: 'radio', checked: settings.lyricScale === p, click: () => applyPatch({ lyricScale: p }) })) },
     { type: 'separator' },
     { label: 'Glow', type: 'checkbox', checked: settings.enabled, click: i => applyPatch({ enabled: i.checked }) },
+    { label: 'Glow style', submenu: GLOW_STYLES.map(([k, l]) => ({ label: l, type: 'radio', checked: settings.glowStyle === k, click: () => applyPatch({ glowStyle: k }) })) },
     { label: 'Glow display', submenu: [
       { label: 'All displays', type: 'radio', checked: settings.glowDisplays === 'all', click: () => applyPatch({ glowDisplays: 'all' }) },
       { label: 'Main display', type: 'radio', checked: settings.glowDisplays === 'main', click: () => applyPatch({ glowDisplays: 'main' }) },
@@ -499,6 +503,8 @@ function reconnect() {
 
 // ---------- IPC ----------
 ipcMain.on('set', (_e, patch) => applyPatch(patch));
+// the floating lyrics window only takes the mouse while the pointer is over its hover bar
+ipcMain.on('lyricsHit', (_e, hit) => { if (alive(lyricsWin) && settings.lyricLock) lyricsWin.setIgnoreMouseEvents(!hit, { forward: true }); });
 ipcMain.on('control', (_e, cmd, arg) => control(cmd, arg));
 ipcMain.on('reconnect', reconnect);
 ipcMain.on('stage', (_e, on) => on ? openStage() : closeStage());

@@ -15,10 +15,21 @@
     background:rgba(0,0,0,.7);padding:4px 10px;border-radius:99px;color:#ddd;white-space:nowrap;z-index:5}
   body.unlocked #hint{display:block}
   #view{position:absolute;inset:0}
+  /* Hover bar. The window stays click-through everywhere except on this bar, so it never blocks what is underneath. */
+  #bar{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:6;display:flex;gap:2px;padding:3px;border-radius:99px;
+    background:rgba(18,18,24,.88);box-shadow:0 4px 18px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.1);
+    font:600 12px 'Segoe UI',sans-serif;color:#eee;opacity:0;visibility:hidden;transition:opacity .18s,visibility 0s linear .18s;white-space:nowrap}
+  body.hover #bar,body.unlocked #bar{opacity:1;visibility:visible;transition:opacity .18s}
+  #bar button,#bar #grip{border:0;background:none;color:inherit;font:inherit;padding:6px 10px;border-radius:99px;cursor:pointer;-webkit-app-region:no-drag}
+  #bar button:hover{background:rgba(255,255,255,.14)}
+  #bar #grip{-webkit-app-region:drag;cursor:move;opacity:.85;letter-spacing:.04em}
+  #bar #grip:hover{background:rgba(255,255,255,.1);opacity:1}
+  body.unlocked #hint{display:none}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style></head><body>
 <div id="frame"></div>
-<div id="hint">Drag to move · drag edges to resize · lock again from the tray or the Lyrics tab</div>
+<div id="hint"></div>
+<div id="bar"><span id="grip" title="Drag to move">⠿ Move</span><button id="sm" title="Smaller text">A−</button><button id="bg" title="Bigger text">A+</button><button id="lk" title="Drag the window or its edges to move / resize">⤢ Resize</button><button id="hd" title="Hide floating lyrics">✕</button></div>
 <div id="view"></div>
 <script src="engine.js"></script>
 <script>
@@ -31,8 +42,23 @@ api.onSettings(s => {
   if (u !== unlocked) { unlocked = u; body.classList.toggle('unlocked', u); }
   if (b !== backdrop) { backdrop = b; body.classList.toggle('backdrop', b); }
 });
+let S = null; api.onSettings(s => { S = s; $lk.textContent = s.lyricLock ? '⤢ Resize' : '🔒 Lock'; $lk.title = s.lyricLock ? 'Unlock to drag the window or its edges' : 'Lock back in place (click-through)'; });
 api.onNow(n => view.setNow(n));
 api.onTime(t => view.setTime(t));
 api.onLyrics(l => view.setLyrics(l));
 api.onLevel(v => view.level(v));
+
+// ---- hover bar: the window ignores the mouse except over the bar (main.js forwards mouse moves while it is click-through)
+const $lk = document.getElementById('lk'), bar = document.getElementById('bar');
+let hitNow = false, hoverT;
+const setHit = v => { if (v !== hitNow) { hitNow = v; api.hit(v); } };
+addEventListener('mousemove', e => {
+  body.classList.add('hover'); clearTimeout(hoverT);
+  hoverT = setTimeout(() => { body.classList.remove('hover'); setHit(false); }, 2200);
+  setHit(!!e.target.closest('#bar'));
+});
+document.getElementById('sm').onclick = () => S && api.set({ lyricScale: Math.max(50, (S.lyricScale || 100) - 10) });
+document.getElementById('bg').onclick = () => S && api.set({ lyricScale: Math.min(200, (S.lyricScale || 100) + 10) });
+$lk.onclick = () => S && api.set({ lyricLock: !S.lyricLock });
+document.getElementById('hd').onclick = () => api.set({ lyrics: false });
 </script></body></html>

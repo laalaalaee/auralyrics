@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('api', {
   set: patch => ipcRenderer.send('set', patch),
   control: (cmd, arg) => ipcRenderer.send('control', cmd, arg),
   reconnect: () => ipcRenderer.send('reconnect'),
+  hit: v => ipcRenderer.send('lyricsHit', !!v),
   stage: on => ipcRenderer.send('stage', on),
   openWindow: tab => ipcRenderer.send('openWindow', tab),
   onTab: on('tab'),

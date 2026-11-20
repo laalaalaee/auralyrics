@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Glow styles (dev)</title>
+<style>body{margin:0;background:#050507;color:#aaa;font:12px 'Segoe UI';padding:10px}
+.row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:10px}
+.cell{position:relative;background:#0b0b10;border-radius:8px;overflow:hidden}
+.g{position:absolute;left:0;top:0;transform-origin:0 0}
+.cell h4{position:absolute;left:0;right:0;top:50%;margin:0;transform:translateY(-50%);text-align:center;font-weight:600;color:#667;z-index:3}</style></head><body>
+<script src="glow.js"></script>
+<script>
+// Each glow is laid out at a REAL screen size and shrunk with a transform, so thickness / glow / corner sizes
+// are judged exactly as they would be on those screens: 1080p, ultrawide, 4:3, portrait and 4K.
+const SHAPES = [['1080p 16:9', 1920, 1080], ['21:9', 2560, 1080], ['4:3', 1600, 1200], ['portrait', 1080, 1920], ['4K 100%', 3840, 2160]];
+const STYLES = ['rim', 'corners', 'orbit', 'twin', 'bars'];
+const q = new URLSearchParams(location.search), only = q.get('s'), W = +q.get('w') || 300;
+(only ? only.split(',') : STYLES).forEach(st => {
+  const row = document.createElement('div'); row.className = 'row'; document.body.appendChild(row);
+  SHAPES.forEach(([n, w, h]) => {
+    const k = Math.min(W / w, 190 / h), c = document.createElement('div'); c.className = 'cell'; c.style.cssText = `width:${w * k}px;height:${h * k}px`;
+    c.innerHTML = `<h4>${st} · ${n}</h4><div class="g" style="width:${w}px;height:${h}px;transform:scale(${k})"></div>`; row.appendChild(c);
+    Glow(c.querySelector('.g')).set({ enabled: true, glowMode: 'default', glowStyle: st, glowColors: 2, c1: '#ff3d81', c2: '#4d7cff', glowSplit: 60, thickness: 10, glow: 60,
+      intensity: 1, speed: 1, idleBrightness: .9, playing: false });
+  });
+});
+</script></body></html>
