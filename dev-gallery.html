@@ -8,5 +8,5 @@
 const S = { c1:'#ff3d81', c2:'#4d7cff', lyricMatchAlbum:true, lyricScale:100, lyricFont:'Segoe UI Variable Display', lyricOffset:0, lyricStyle:'stack' };
 LYRIC_STYLES.forEach(s => { const c = document.createElement('div'); c.className='cell'; c.innerHTML = `<h4>${s.family} · ${s.name}</h4><div class="v"></div>`;
   document.body.appendChild(c); const v = new LyricsView(c.querySelector('.v'), { demo:true, scale:.62, style:s.key });
-  v.setNow({ title:'Demo Song', artist:'Glowrim', art:'' }); v.setSettings(S); });
+  v.setNow({ title:'Demo Song', artist:'Auralyrics', art:'' }); v.setSettings(S); });
 </script></body></html>

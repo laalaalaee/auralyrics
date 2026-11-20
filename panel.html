@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><title>Glowrim</title>
+<!doctype html><html><head><meta charset="utf-8"><title>Auralyrics</title>
 <link rel="stylesheet" href="engine.css">
 <style>
   @property --c1 { syntax: '<color>'; inherits: true; initial-value: #ff3d81; }
@@ -12,6 +12,7 @@
   /* ---------- left: preview + styles ---------- */
   .left{flex:1;min-width:0;overflow-y:auto;padding:16px 18px 30px}
   .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .brand span{font-weight:400}
   .brand{font-size:18px;font-weight:800;letter-spacing:-.3px;background:linear-gradient(90deg,var(--c1),var(--c2));-webkit-background-clip:text;color:transparent}
   .stat{display:flex;gap:8px}
   .stat button{display:flex;align-items:center;gap:7px;border:0;background:#15151c;color:#ccc;border-radius:99px;padding:6px 12px;cursor:pointer;font-size:12px}
@@ -172,7 +173,7 @@
 
 <div class="left">
   <div class="top">
-    <div class="brand">Glowrim</div>
+    <div class="brand">Aura<span>lyrics</span></div>
     <div class="stat">
       <button id="statBtn" title="Player status"><span class="dot" id="statDot"></span><span id="statTxt">Connecting…</span></button>
       <button id="stageBtn" title="Full-screen lyrics (Ctrl+Alt+L)">⛶ Full screen</button>
@@ -253,7 +254,7 @@
     </div>
     <div class="card"><h4>Full-screen lyrics</h4>
       <div class="hint" style="margin-top:6px">The main lyrics view: blurred cover art, a clock and your style, with Style · Size · Font · Aesthetics · Display along the top. Ctrl + Alt + L opens and closes it from anywhere.</div>
-      <div class="row"><label>Open full screen when Glowrim starts<small>Starting with Windows stays quietly in the tray.</small></label><div class="sw" data-k="openFullOnLaunch"></div></div>
+      <div class="row"><label>Open full screen when Auralyrics starts<small>Starting with Windows stays quietly in the tray.</small></label><div class="sw" data-k="openFullOnLaunch"></div></div>
       <div class="row"><label>Background</label><div class="seg" data-k="stageBg" style="width:170px;margin:0"><button data-v="art">Album art</button><button data-v="dark">Dark</button></div></div>
       <div class="row"><label>Show the clock</label><div class="sw" data-k="stageClock"></div></div>
       <div class="row"><label>Show lyrics<small>Turn off for calm or happy songs, or while you work. Press H in full screen.</small></label><div class="sw" data-k="stageLyrics"></div></div>
@@ -299,8 +300,8 @@
   <div class="pane" id="p-status">
     <div class="card">
       <div class="chk"><i id="c1"></i><div><b id="c1t">Player is open</b><small id="c1s">Spotify, Apple Music, a browser — anything in Windows' media controls.</small></div></div>
-      <div class="chk"><i id="c2"></i><div><b>Glowrim can read what's playing</b><small id="c2s">Through Windows media controls; no account needed.</small></div></div>
-      <div class="chk"><i id="c3"></i><div><b id="c3t">What's playing</b><small id="c3s">The track Glowrim sees.</small></div></div>
+      <div class="chk"><i id="c2"></i><div><b>Auralyrics can read what's playing</b><small id="c2s">Through Windows media controls; no account needed.</small></div></div>
+      <div class="chk"><i id="c3"></i><div><b id="c3t">What's playing</b><small id="c3s">The track Auralyrics sees.</small></div></div>
       <div class="chk"><i id="c4"></i><div><b id="c4t">Lyrics found</b><small id="c4s">Whether the song has lyrics, and how they are timed.</small></div></div>
       <div class="nudge"><button id="nMinus">−0.5</button><div><b id="nVal">0 s</b><small>Lyrics on their own timing<br>Resets with the next song.</small></div><button id="nPlus">+0.5</button></div>
       <div class="row"><label>Bluetooth / device delay<small>Applies to every song.</small></label><input type="range" data-n="lyricOffset" min="-2" max="2" step="0.1" style="max-width:110px"><span class="val"></span></div>
@@ -312,9 +313,9 @@
   <div class="pane" id="p-app">
     <div class="card">
       <div class="row"><label>Start with Windows</label><div class="sw" data-k="startup"></div></div>
-      <div class="row"><label>Quick tour<small>A 30-second look at what Glowrim does.</small></label><button class="btn" id="tourBtn">Show tour</button></div>
+      <div class="row"><label>Quick tour<small>A 30-second look at what Auralyrics does.</small></label><button class="btn" id="tourBtn">Show tour</button></div>
       <div class="hint" style="margin:6px 0 12px">
-        Glowrim lives in the tray next to the clock; closing this window keeps it running.<br>
+        Auralyrics lives in the tray next to the clock; closing this window keeps it running.<br>
         Lyrics come from <b>LRCLIB</b>, a free open lyrics database — only the song title, artist and length are sent.<br>
         The glow listens to your PC's sound output to find the beat — never the microphone.<br>
         It rests while your PC is locked or asleep.
@@ -516,8 +517,8 @@ api.onSettings(s => {
 
 // ---------- first-run tour ----------
 const TOUR = [
-  ['✦', 'Welcome to Glowrim', 'A rim of light around your screen and synced lyrics, driven by whatever is playing. No account, no sign-in.'],
-  ['▶', 'Play something', 'Open Spotify, Apple Music or YouTube in a browser and press play. Glowrim reads Windows media controls; the Status tab shows if it can see your player.'],
+  ['✦', 'Welcome to Auralyrics', 'A rim of light around your screen and synced lyrics, driven by whatever is playing. No account, no sign-in.'],
+  ['▶', 'Play something', 'Open Spotify, Apple Music or YouTube in a browser and press play. Auralyrics reads Windows media controls; the Status tab shows if it can see your player.'],
   ['🎨', 'Pick a style', 'Browse 16 lyric styles here and press <b>Select</b>. Use ← → or swipe the preview. Pin favourites to the tray menu.'],
   ['⛶', 'Go full screen', 'Press <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>L</kbd> from anywhere. In full screen, <kbd>H</kbd> hides lyrics for calm songs and <kbd>Esc</kbd> leaves.'],
   ['🌈', 'Make it yours', 'The Glow tab sets colours, thickness, animation and how the two colours split. It listens to your PC’s sound output, never the microphone.']
@@ -558,9 +559,9 @@ api.onStatus(st => {
   ST = st; const app = (st.app || '').replace(/\.exe$/i, '').split('!').pop();
   const set = (id, cls, sym) => { $(id).className = cls; $(id).textContent = sym; };
   set('c1', st.app ? 'ok' : 'bad', st.app ? '✓' : '!'); $('c1t').textContent = st.app ? `${app} is open` : 'No player found';
-  $('c1s').innerHTML = st.app ? 'Glowrim follows the app Windows says is playing.' : 'Open Spotify, Apple Music or a browser and press play.<span class="help">Still nothing? Start a song, then press Reconnect below. Some players only appear after they have played audio once.</span>';
+  $('c1s').innerHTML = st.app ? 'Auralyrics follows the app Windows says is playing.' : 'Open Spotify, Apple Music or a browser and press play.<span class="help">Still nothing? Start a song, then press Reconnect below. Some players only appear after they have played audio once.</span>';
   const h = st.helper; set('c2', h === 'running' ? 'ok' : h === 'starting' ? 'warn' : 'bad', h === 'running' ? '✓' : h === 'starting' ? '…' : '!');
-  $('c2s').textContent = h === 'running' ? 'Reading Windows media controls.' : h === 'starting' ? 'Connecting to Windows media controls…' : 'Not connected — try “Reconnect to the player”. If it keeps failing, restart Glowrim; Windows media controls may have stopped responding.';
+  $('c2s').textContent = h === 'running' ? 'Reading Windows media controls.' : h === 'starting' ? 'Connecting to Windows media controls…' : 'Not connected — try “Reconnect to the player”. If it keeps failing, restart Auralyrics; Windows media controls may have stopped responding.';
   set('c3', st.title ? 'ok' : 'warn', st.title ? '✓' : '…'); $('c3t').textContent = st.title ? `Playing “${st.title}”` : 'Nothing playing yet'; $('c3s').textContent = st.title ? st.artist : 'Press play in your player.';
   const L = { synced: [`ok`, '✓', st.timing === 'word' ? 'Lyrics found, timed word by word' : 'Lyrics found, timed line by line', st.timing === 'word' ? 'Real per-word timing.' : `${st.lines} lines · words are lit by an estimate within each line.`],
     loading: ['warn', '…', 'Finding lyrics…', 'Asking LRCLIB.'], plain: ['warn', '!', 'Lyrics found, not time-synced', 'LRCLIB only has unsynced text for this track.'],

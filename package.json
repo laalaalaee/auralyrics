@@ -1,8 +1,15 @@
 {
-  "name": "glowrim",
-  "version": "1.6.0",
-  "description": "Ambient screen-edge glow and synced full-screen lyrics for Windows",
+  "name": "auralyrics",
+  "productName": "Auralyrics",
+  "version": "2.0.0",
+  "description": "Synced full-screen lyrics and an ambient screen-edge glow for Windows, driven by whatever is playing in Spotify, Apple Music or your browser.",
   "main": "main.js",
+  "keywords": [
+    "synced lyrics", "lyrics", "lyrics app", "full screen lyrics", "music visualizer", "ambient glow", "screen glow",
+    "spotify lyrics", "apple music lyrics", "youtube music lyrics", "karaoke", "lock screen lyrics", "windows", "electron", "lrclib"
+  ],
+  "license": "UNLICENSED",
+  "private": true,
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win"
@@ -12,9 +19,10 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "local.glowrim",
-    "productName": "Glowrim",
-    "files": ["**/*", "!dist/**", "!dev-gallery.html", "!dev-glow.html"],
+    "appId": "app.auralyrics",
+    "productName": "Auralyrics",
+    "copyright": "Copyright © 2026 Auralyrics. All rights reserved.",
+    "files": ["**/*", "!dist/**", "!docs/**", "!site/**", "!dev-gallery.html", "!dev-glow.html", "!*.md"],
     "asarUnpack": ["media.ps1"],
     "win": { "target": ["nsis", "portable"], "signAndEditExecutable": false },
     "nsis": {
@@ -23,9 +31,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": true,
-      "shortcutName": "Glowrim",
-      "artifactName": "Glowrim-Setup-${version}.exe"
+      "shortcutName": "Auralyrics",
+      "artifactName": "Auralyrics-Setup-${version}.exe"
     },
-    "portable": { "artifactName": "Glowrim-${version}-portable.exe" }
+    "portable": { "artifactName": "Auralyrics-${version}-portable.exe" }
   }
 }

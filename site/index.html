@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auralyrics — Synced Lyrics &amp; Music Glow for Windows</title>
+<meta name="description" content="Auralyrics turns whatever you play into full-screen, word-by-word synced lyrics in 17 styles, with an ambient glow in your album's colours. Works with Spotify, Apple Music and YouTube on Windows.">
+<meta name="theme-color" content="#0b0716">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<!-- Add once the domain is chosen: <link rel="canonical" href="https://YOUR-DOMAIN/">, og:url, and an absolute og:image URL (social cards need absolute URLs). -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Auralyrics">
+<meta property="og:title" content="Auralyrics — Synced Lyrics &amp; Music Glow for Windows">
+<meta property="og:description" content="Full-screen, word-by-word synced lyrics in 17 styles, wrapped in a glow that takes its colours from the album cover. Spotify, Apple Music and YouTube on Windows.">
+<meta property="og:image" content="img/lyrics-messages.jpg">
+<meta property="og:image:alt" content="Auralyrics showing synced lyrics as a message thread with a glowing screen edge">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Auralyrics — Synced Lyrics &amp; Music Glow for Windows">
+<meta name="twitter:description" content="Full-screen synced lyrics in 17 styles with an ambient album-colour glow. For Windows.">
+<meta name="twitter:image" content="img/lyrics-messages.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23ff5f9e'/%3E%3Cstop offset='1' stop-color='%237b5cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='%230b0716'/%3E%3Crect x='8' y='8' width='48' height='48' rx='12' fill='none' stroke='url(%23g)' stroke-width='5'/%3E%3C/svg%3E">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Auralyrics",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Windows 10, Windows 11",
+  "description": "Full-screen, word-by-word synced lyrics in 17 styles with an ambient screen-edge glow that follows the album colours and the beat. Works with Spotify, Apple Music, YouTube and any player that appears in Windows media controls.",
+  "featureList": ["Word-by-word synced lyrics", "17 lyric styles", "Auto style that fits each song", "Ambient album-colour screen glow", "Spotify, Apple Music and YouTube support", "No account or sign-in"],
+  "image": "img/lyrics-messages.jpg"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type": "Question", "name": "Which music players does Auralyrics work with?", "acceptedAnswer": {"@type": "Answer", "text": "Spotify, Apple Music, YouTube and YouTube Music in a browser, and any app that shows up in Windows media controls."}},
+    {"@type": "Question", "name": "Do I need an account to use Auralyrics?", "acceptedAnswer": {"@type": "Answer", "text": "No. There is no sign-in and nothing to connect. Auralyrics reads what Windows says is playing."}},
+    {"@type": "Question", "name": "Where do the synced lyrics come from?", "acceptedAnswer": {"@type": "Answer", "text": "From LRCLIB, a free and open lyrics database. Real per-word timing is used when a song has it, otherwise word timing is estimated within each line."}},
+    {"@type": "Question", "name": "Does Auralyrics record my audio?", "acceptedAnswer": {"@type": "Answer", "text": "No. It reads the PC's audio output locally to find the beat, never the microphone, and no audio leaves your computer."}}
+  ]
+}
+</script>
+<style>
+  :root{--bg:#0b0716;--ink:#f4f1fa;--mute:#a79fba;--line:rgba(255,255,255,.1);--a:#ff5f9e;--b:#7b5cff;--card:rgba(255,255,255,.04)}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  img{max-width:100%;height:auto;display:block}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+  .grad{background:linear-gradient(90deg,var(--a),var(--b));-webkit-background-clip:text;background-clip:text;color:transparent}
+  header.nav{position:sticky;top:0;z-index:5;backdrop-filter:blur(14px);background:rgba(11,7,22,.7);border-bottom:1px solid var(--line)}
+  .nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .brand{font-weight:800;font-size:20px;letter-spacing:-.3px;text-decoration:none}.brand span{font-weight:400}
+  .nav nav{display:flex;gap:22px;font-size:14px;color:var(--mute)}.nav nav a{text-decoration:none}.nav nav a:hover{color:var(--ink)}
+  .hero{position:relative;padding:72px 0 40px;text-align:center;overflow:hidden}
+  .hero::before{content:"";position:absolute;inset:-20% -10% auto;height:620px;background:radial-gradient(50% 60% at 30% 30%,rgba(255,95,158,.28),transparent),radial-gradient(50% 60% at 72% 25%,rgba(123,92,255,.3),transparent);filter:blur(30px);z-index:-1}
+  .pill{display:inline-block;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:5px 14px;font-size:13px;color:var(--mute)}
+  h1{font-size:clamp(34px,6vw,64px);line-height:1.05;letter-spacing:-.03em;margin:18px auto 16px;max-width:15ch;font-weight:800}
+  .lead{max-width:60ch;margin:0 auto 28px;font-size:clamp(16px,2vw,19px);color:var(--mute)}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-block;padding:12px 22px;border-radius:99px;font-weight:600;text-decoration:none;font-size:15px}
+  .btn.p{background:linear-gradient(90deg,var(--a),var(--b));color:#fff}
+  .btn.g{border:1px solid var(--line);background:var(--card)}
+  .meta{margin-top:14px;font-size:13px;color:var(--mute)}
+  .shot{border-radius:18px;border:1px solid var(--line);overflow:hidden;background:#000;box-shadow:0 30px 80px -30px rgba(123,92,255,.55),0 0 0 1px rgba(255,255,255,.04)}
+  .hero .shot{max-width:980px;margin:44px auto 0}
+  section{padding:72px 0}
+  h2{font-size:clamp(26px,4vw,40px);line-height:1.1;letter-spacing:-.02em;margin:0 0 12px;font-weight:800}
+  .sub{color:var(--mute);max-width:62ch;margin:0 0 36px}
+  .grid{display:grid;gap:16px}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+  .card{border:1px solid var(--line);background:var(--card);border-radius:16px;padding:22px}
+  .card h3{margin:0 0 6px;font-size:18px}.card p{margin:0;color:var(--mute);font-size:15px}
+  .ico{font-size:24px;margin-bottom:10px}
+  figure{margin:0}figcaption{margin-top:10px;font-size:14px;color:var(--mute)}figcaption b{color:var(--ink)}
+  .split{display:grid;gap:36px;grid-template-columns:1fr 1.1fr;align-items:center}
+  @media(max-width:820px){.split{grid-template-columns:1fr}.nav nav{display:none}}
+  ul.tick{list-style:none;padding:0;margin:18px 0 0}ul.tick li{padding-left:26px;position:relative;margin:9px 0;color:var(--mute)}
+  ul.tick li::before{content:"✦";position:absolute;left:0;color:var(--a)}
+  table{width:100%;border-collapse:collapse;font-size:15px}td,th{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--mute);font-weight:600}
+  details{border-bottom:1px solid var(--line);padding:16px 0}summary{cursor:pointer;font-weight:600;font-size:17px;list-style:none}summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";float:right;color:var(--a);font-size:22px;line-height:1}details[open] summary::after{content:"–"}
+  details p{color:var(--mute);margin:10px 0 0}
+  footer{border-top:1px solid var(--line);padding:36px 0;color:var(--mute);font-size:14px}
+  footer .wrap{display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="brand grad" href="#top" aria-label="Auralyrics home">Aura<span>lyrics</span></a>
+  <nav aria-label="Primary"><a href="#features">Features</a><a href="#styles">Styles</a><a href="#auto">Auto</a><a href="#glow">Glow</a><a href="#faq">FAQ</a></nav>
+</div></header>
+
+<main id="top">
+<div class="hero"><div class="wrap">
+  <span class="pill">For Windows 10 &amp; 11 · Spotify · Apple Music · YouTube</span>
+  <h1>Synced lyrics that light up your <span class="grad">whole screen.</span></h1>
+  <p class="lead">Auralyrics turns whatever you're playing into full-screen, word-by-word synced lyrics, wrapped in an ambient glow that takes its colours from the album cover and moves with the beat.</p>
+  <div class="cta"><a class="btn p" href="#styles">See the styles</a><a class="btn g" href="#features">How it works</a></div>
+  <p class="meta">No account. No sign-in. Private preview.</p>
+  <div class="shot"><img src="img/lyrics-messages.jpg" width="1280" height="720" alt="Auralyrics showing synced lyrics as an iMessage-style thread, with a twin-orbit glow around the screen edge" fetchpriority="high"></div>
+</div></div>
+
+<section id="features"><div class="wrap">
+  <h2>Everything your music app leaves out</h2>
+  <p class="sub">Lyrics that move with the song, a screen that matches the cover, and nothing to set up.</p>
+  <div class="grid g3">
+    <div class="card"><div class="ico" aria-hidden="true">🎤</div><h3>Synced word by word</h3><p>Words light up as they're sung, using real per-word timing when a song has it and smart estimates when it doesn't.</p></div>
+    <div class="card"><div class="ico" aria-hidden="true">🎨</div><h3>17 lyric styles</h3><p>Kinetic type, motion scenes, iPhone-style Messages, Money and Maps screens, classic layouts and a cover-art poster.</p></div>
+    <div class="card"><div class="ico" aria-hidden="true">✨</div><h3>Auto style</h3><p>Reads each song and picks the style that suits it, from its pace to what it's about, so every track looks different.</p></div>
+    <div class="card"><div class="ico" aria-hidden="true">🌈</div><h3>Ambient glow</h3><p>A rim of light in the album's two strongest colours, with Twin orbit comets circling your screen to the beat.</p></div>
+    <div class="card"><div class="ico" aria-hidden="true">💿</div><h3>Click the cover</h3><p>Tap the small cover in full screen to see it big, tap again to bring the lyrics back.</p></div>
+    <div class="card"><div class="ico" aria-hidden="true">🔒</div><h3>Private by design</h3><p>Reads Windows media controls locally. Audio is analysed on your PC for the beat and never recorded or uploaded.</p></div>
+  </div>
+</div></section>
+
+<section id="styles"><div class="wrap">
+  <h2>One song, seventeen ways to see it</h2>
+  <p class="sub">From a message thread to a payments feed to a map with a pin for every line.</p>
+  <div class="grid g2">
+    <figure><div class="shot"><img src="img/lyrics-visual.jpg" width="1280" height="720" loading="lazy" alt="Visual style: big kinetic lyrics with an icon beside words that have one"></div><figcaption><b>Visual</b> · kinetic type with an icon for every word that has one</figcaption></figure>
+    <figure><div class="shot"><img src="img/lyrics-poster.jpg" width="1280" height="720" loading="lazy" alt="Poster style: the album cover with the sung line printed beside it"></div><figcaption><b>Poster</b> · the cover as a poster, the sung line beside it</figcaption></figure>
+    <figure><div class="shot"><img src="img/lyrics-map.jpg" width="1280" height="720" loading="lazy" alt="Maps style: each lyric line pinned on a map"></div><figcaption><b>Maps</b> · every line pinned somewhere on the map</figcaption></figure>
+    <figure><div class="shot"><img src="img/lyrics-money.jpg" width="1280" height="720" loading="lazy" alt="Money style: each lyric line shown as a payment"></div><figcaption><b>Money</b> · the song as a run of payments</figcaption></figure>
+    <figure><div class="shot"><img src="img/lyrics-karaoke.jpg" width="1280" height="720" loading="lazy" alt="Karaoke style: one big line that fills with colour as it is sung"></div><figcaption><b>Karaoke</b> · one big line that fills with colour as it's sung</figcaption></figure>
+    <figure><div class="shot"><img src="img/cover-view.jpg" width="1280" height="720" loading="lazy" alt="The album cover shown large in full screen"></div><figcaption><b>Cover view</b> · click the cover; click again for the lyrics</figcaption></figure>
+  </div>
+</div></section>
+
+<section id="auto"><div class="wrap split">
+  <div>
+    <h2>Auto picks the style for you</h2>
+    <p class="sub" style="margin-bottom:0">Nobody wants to browse a menu mid-song. Auralyrics reads the lyrics and chooses for you.</p>
+    <ul class="tick">
+      <li><b>Pace and line length.</b> Fast, clipped tracks lean kinetic; slow, long lines lean calm.</li>
+      <li><b>What the song's about.</b> Money, places, the night sky, texting and calling.</li>
+      <li><b>The time of day.</b> Late at night it leans towards quieter styles.</li>
+      <li><b>Never predictable.</b> It picks at random, weighted by fit, and never repeats the style on screen.</li>
+    </ul>
+  </div>
+  <div class="shot"><img src="img/window.jpg" width="1180" height="860" loading="lazy" alt="The Auralyrics window with the live style preview, style gallery, player and Auto setting"></div>
+</div></section>
+
+<section id="glow"><div class="wrap split">
+  <div class="shot"><img src="img/glow-menu.jpg" width="1280" height="720" loading="lazy" alt="Glow settings in the full-screen view: style, animation, thickness, brightness and colours"></div>
+  <div>
+    <h2>A glow that follows the album</h2>
+    <p class="sub">Five styles, led by Twin orbit: two comets circling the edge of your screen in the cover's strongest colours.</p>
+    <table>
+      <tr><th>Style</th><th>Look</th></tr>
+      <tr><td>Twin orbit</td><td>Two comets circling the edge</td></tr>
+      <tr><td>Orbit</td><td>One comet circling the edge</td></tr>
+      <tr><td>Rim</td><td>The whole edge lit evenly</td></tr>
+      <tr><td>Corners</td><td>Four corner blooms</td></tr>
+      <tr><td>Top &amp; bottom</td><td>Top and bottom only</td></tr>
+    </table>
+  </div>
+</div></section>
+
+<section id="faq"><div class="wrap" style="max-width:780px">
+  <h2>Questions</h2>
+  <details><summary>Which music players does it work with?</summary><p>Spotify, Apple Music, YouTube and YouTube Music in a browser, and any app that shows up in Windows media controls.</p></details>
+  <details><summary>Do I need an account?</summary><p>No. There is no sign-in and nothing to connect. Auralyrics reads what Windows says is playing.</p></details>
+  <details><summary>Where do the lyrics come from?</summary><p>From LRCLIB, a free and open lyrics database. When a song has real per-word timing it's used; otherwise timing is estimated within each line. Very new or niche releases are sometimes missing, but the glow still works.</p></details>
+  <details><summary>Does it record my audio?</summary><p>No. It reads the PC's audio output locally to find the beat. It never uses the microphone, and no audio leaves your computer.</p></details>
+  <details><summary>What is sent over the network?</summary><p>Only the song title, artist and length, to LRCLIB, to find the lyrics.</p></details>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <span>© 2026 Auralyrics. All rights reserved.</span>
+  <span>Lyrics provided by <a href="https://lrclib.net" rel="noopener">LRCLIB</a>. Spotify, Apple Music and YouTube are trademarks of their respective owners; Auralyrics is not affiliated with them.</span>
+</div></footer>
+</body>
+</html>

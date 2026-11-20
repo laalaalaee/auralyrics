@@ -1,4 +1,4 @@
-/* Glowrim lyrics engine styles. Variables: --fs --font --tx --hl --sec --c1 --c2 --beat */
+/* Auralyrics lyrics engine styles. Variables: --fs --font --tx --hl --sec --c1 --c2 --beat */
 @property --c1 { syntax: '<color>'; inherits: true; initial-value: #ff3d81; }
 @property --c2 { syntax: '<color>'; inherits: true; initial-value: #4d7cff; }
 .gl-root { position: relative; overflow: hidden; color: var(--tx, #fff); font-family: var(--font); --fs: 34px; --beat: 0;

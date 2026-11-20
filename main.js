@@ -7,14 +7,14 @@ const fs = require('fs');
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) { app.quit(); process.exit(0); }
-app.setAppUserModelId('local.glowrim');
+app.setAppUserModelId('app.auralyrics');
 
-// ---------- logging (%APPDATA%\glowrim\glowrim.log; the packaged app has no console) ----------
-const logFile = () => path.join(app.getPath('userData'), 'glowrim.log');
+// ---------- logging (%APPDATA%\Auralyrics\auralyrics.log; the packaged app has no console) ----------
+const logFile = () => path.join(app.getPath('userData'), 'auralyrics.log');
 function log(...a) {
   const line = `[${new Date().toISOString()}] ${a.map(x => x instanceof Error ? x.stack : typeof x === 'string' ? x : JSON.stringify(x)).join(' ')}\n`;
   try { fs.appendFileSync(logFile(), line); } catch {}
-  if (process.env.GLOWRIM_DEBUG) process.stdout.write(line);
+  if (process.env.AURALYRICS_DEBUG) process.stdout.write(line);
 }
 process.on('uncaughtException', e => log('uncaught', e));
 process.on('unhandledRejection', e => log('unhandled', e));
@@ -46,7 +46,15 @@ const DEFAULTS = {
 };
 let settings = JSON.parse(JSON.stringify(DEFAULTS));
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
+// 2.0: the app used to be called Glowrim. Carry its settings over once, the first time Auralyrics starts.
+function migrateLegacy() {
+  try {
+    const old = path.join(app.getPath('appData'), 'glowrim', 'settings.json');
+    if (!fs.existsSync(settingsFile()) && fs.existsSync(old)) { fs.mkdirSync(path.dirname(settingsFile()), { recursive: true }); fs.copyFileSync(old, settingsFile()); }
+  } catch {}
+}
 function load() {
+  migrateLegacy();
   try {
     const s = JSON.parse(fs.readFileSync(settingsFile(), 'utf8'));
     if (!s.v || s.v < 2) { delete s.thickness; delete s.glow; delete s.idleBrightness; }
@@ -191,7 +199,7 @@ function buildLyricsWin() {
   const b = onSomeDisplay(settings.lyricBounds) ? settings.lyricBounds : defaultLyricBounds();
   lyricsWin = new BrowserWindow({
     ...b, minWidth: 320, minHeight: 120, transparent: true, frame: false, hasShadow: false,
-    skipTaskbar: true, alwaysOnTop: true, show: false, title: 'Glowrim Lyrics',
+    skipTaskbar: true, alwaysOnTop: true, show: false, title: 'Auralyrics Lyrics',
     webPreferences: { preload, backgroundThrottling: false }
   });
   lyricsWin.setAlwaysOnTop(true, 'screen-saver');
@@ -223,10 +231,10 @@ function stageTargets() {
 }
 function openStage() {
   if (stageWins.length) { stageWins.forEach(w => alive(w) && (w.show(), w.focus())); return; }
-  const shot = process.env.GLOWRIM_SHOT; // dev only: render off-screen and save screenshots
+  const shot = process.env.AURALYRICS_SHOT; // dev only: render off-screen and save screenshots
   stageWins = stageTargets().slice(0, shot ? 1 : 9).map((d, k) => {
     const w = new BrowserWindow({
-      ...(shot ? { width: 1600, height: 900 } : d.bounds), frame: false, show: false, title: 'Glowrim Lyrics', backgroundColor: '#000000',
+      ...(shot ? { width: 1600, height: 900 } : d.bounds), frame: false, show: false, title: 'Auralyrics Lyrics', backgroundColor: '#000000',
       icon: appIcon(64), autoHideMenuBar: true, webPreferences: { preload, backgroundThrottling: false, offscreen: !!shot }
     });
     w._displayId = d.id;
@@ -269,7 +277,7 @@ function setResting(v) {
 
 // ---------- synced lyrics from LRCLIB (free, open lyrics database) ----------
 const lyricCache = new Map();
-const UA = { 'User-Agent': 'Glowrim/1.0 (desktop lyrics app)' };
+const UA = { 'User-Agent': 'Auralyrics/' + require('./package.json').version + ' (desktop lyrics app)' };
 async function lrclib(q) {
   const res = await net.fetch('https://lrclib.net/api/' + q, { headers: UA });
   if (res.status === 404 || res.status === 400) return null; // 400 = query LRCLIB can't use; treat as "not found"
@@ -357,18 +365,18 @@ function sendStatus() {
 function openPanel() {
   if (alive(panel)) { bringToFront(); return; }
   panel = new BrowserWindow({
-    width: 980, height: 820, minWidth: 360, minHeight: 480, title: 'Glowrim',
+    width: 980, height: 820, minWidth: 360, minHeight: 480, title: 'Auralyrics',
     backgroundColor: '#07070a', autoHideMenuBar: true, icon: appIcon(64), show: false,
     webPreferences: { preload }
   });
   panel.loadFile('panel.html');
   panel.webContents.once('did-finish-load', () => { primeWindow(panel); send(panel, 'displays', displayList()); sendStatus(); });
-  panel.once('ready-to-show', () => { if (!process.env.GLOWRIM_SHOT) bringToFront(); else panel.showInactive(); });
-  // dev only: GLOWRIM_SHOT=<dir> saves screenshots of the window without stealing focus
-  if (process.env.GLOWRIM_SHOT) [[5000, 'look'], [8000, 'status'], [10000, 'glow']].forEach(([ms, tab], k) => setTimeout(() => alive(panel) &&
+  panel.once('ready-to-show', () => { if (!process.env.AURALYRICS_SHOT) bringToFront(); else panel.showInactive(); });
+  // dev only: AURALYRICS_SHOT=<dir> saves screenshots of the window without stealing focus
+  if (process.env.AURALYRICS_SHOT) [[5000, 'look'], [8000, 'status'], [10000, 'glow']].forEach(([ms, tab], k) => setTimeout(() => alive(panel) &&
     panel.webContents.executeJavaScript(`openTab('${tab}'); document.querySelector('.right').scrollTop = 0`)
       .then(() => new Promise(r => setTimeout(r, 300))).then(() => panel.webContents.capturePage())
-      .then(img => fs.writeFileSync(path.join(process.env.GLOWRIM_SHOT, `panel${k}.png`), img.toPNG())), ms));
+      .then(img => fs.writeFileSync(path.join(process.env.AURALYRICS_SHOT, `panel${k}.png`), img.toPNG())), ms));
 }
 // Windows blocks background apps from stealing focus; nudge the window to the top.
 function bringToFront() {
@@ -395,7 +403,7 @@ function refreshMenuNow() {
   menuT = null;
   if (!tray || quitting || tray.isDestroyed()) return;                // a deferred rebuild can land mid-quit
   const np = nowPlaying.title ? `${nowPlaying.title} — ${nowPlaying.artist}` : 'Nothing playing';
-  tray.setToolTip(`Glowrim · ${np}`.slice(0, 127));
+  tray.setToolTip(`Auralyrics · ${np}`.slice(0, 127));
   const has = !!nowPlaying.title;
   const pinned = (settings.pinnedStyles || []).filter(k => STYLE_NAMES[k]);
   const disp = displayList();
@@ -405,7 +413,7 @@ function refreshMenuNow() {
     { label: 'Next', enabled: has, click: () => control('next') },
     { label: 'Previous', enabled: has, click: () => control('prev') },
     { type: 'separator' },
-    { label: 'Open Glowrim', click: openPanel },
+    { label: 'Open Auralyrics', click: openPanel },
     { type: 'separator' },
     { label: 'Style', enabled: false },
     ...(pinned.length ? pinned : [settings.lyricStyle]).map(k => ({ label: STYLE_NAMES[k], type: 'radio', checked: settings.lyricShuffle === 'off' && settings.lyricStyle === k, click: () => applyPatch({ lyricShuffle: 'off', lyricStyle: k }) })),
@@ -426,7 +434,7 @@ function refreshMenuNow() {
       ...disp.map(d => ({ label: `${d.label} (${d.size})`, type: 'radio', checked: settings.glowDisplays === d.id, click: () => applyPatch({ glowDisplays: d.id }) }))] },
     { label: 'Follow album colors', type: 'checkbox', checked: settings.albumColors, click: i => applyPatch({ albumColors: i.checked }) },
     { type: 'separator' },
-    { label: 'Quit Glowrim', click: () => app.quit() }
+    { label: 'Quit Auralyrics', click: () => app.quit() }
   ]));
 }
 
@@ -545,10 +553,10 @@ app.whenReady().then(() => {
   startMedia();
   // Started with Windows → stay in the tray. Opened by hand → go straight to the main view.
   const hidden = process.argv.includes('--hidden');
-  if (process.env.GLOWRIM_SHOT) { openPanel(); openStage(); }
+  if (process.env.AURALYRICS_SHOT) { openPanel(); openStage(); }
   else if (!hidden) settings.openFullOnLaunch ? openStage() : openPanel();
   if (!hidden && Notification.isSupported()) {
-    const n = new Notification({ title: 'Glowrim is running', body: 'Ctrl + Alt + L toggles full-screen lyrics. Settings live in the tray icon (bottom-right, ^).', icon: appIcon(64) });
+    const n = new Notification({ title: 'Auralyrics is running', body: 'Ctrl + Alt + L toggles full-screen lyrics. Settings live in the tray icon (bottom-right, ^).', icon: appIcon(64) });
     n.on('click', openPanel); n.show();
   }
   let t; const rebuild = () => { clearTimeout(t); t = setTimeout(() => { buildOverlays(); refreshMenu(); }, 400); };

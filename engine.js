@@ -1,4 +1,4 @@
-/* Glowrim lyrics engine — one renderer for the floating lyrics, Stage mode and the live preview.
+/* Auralyrics lyrics engine — one renderer for the floating lyrics, Stage mode and the live preview.
    new LyricsView(el, { scale, style, demo }) then feed it setSettings / setNow / setTime / setLyrics / level. */
 (function () {
   'use strict';
@@ -320,7 +320,7 @@
   // ---- Native Design (iPhone screens, keep their own colours) ----
   const initials = s => (s || '♪').split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase();
   def('messages', { family: 'Native Design', native: true, name: 'Native Design', desc: 'The song as a message thread, a bubble for every line.', grad: ['#1d4fa8', '#7fb6ff'] }, {
-    mount(r, v) { r.innerHTML = `<div class="phone"><div class="hd"><div class="av">${esc(initials(v.N.artist))}</div><div><b>${esc(v.N.artist || 'Glowrim')}</b><small>iMessage</small></div></div><div class="th"></div></div>`;
+    mount(r, v) { r.innerHTML = `<div class="phone"><div class="hd"><div class="av">${esc(initials(v.N.artist))}</div><div><b>${esc(v.N.artist || 'Auralyrics')}</b><small>iMessage</small></div></div><div class="th"></div></div>`;
       v.st.th = r.querySelector('.th'); },
     // New bubbles pop in (msgin) while the thread above slides up to make room (glide) instead of jumping;
     // the oldest bubble fades and lifts away (leave) instead of vanishing.
