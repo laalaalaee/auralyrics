@@ -9,19 +9,27 @@
   body.idle{cursor:none}
   button,select{font:inherit;color:inherit}
   /* background */
-  #bg{position:absolute;inset:-10%;background:center/cover;filter:blur(80px) saturate(1.5) brightness(.55);transform:scale(1.1);transition:opacity 1s}
+  /* own GPU layer: the 80px blur is rasterised once per cover, not again on every lyric frame */
+  #bg{position:absolute;inset:-10%;background:center/cover;filter:blur(80px) saturate(1.5) brightness(.55);transform:scale(1.1) translateZ(0);will-change:transform;transition:opacity 1s}
+  #tint,#clock{will-change:opacity}
   #tint{position:absolute;inset:0;background:radial-gradient(80% 70% at 50% 45%,transparent,rgba(0,0,0,.7)),
     linear-gradient(180deg,color-mix(in srgb,var(--c1) 22%,transparent),transparent 45%,color-mix(in srgb,var(--c2) 20%,transparent))}
+  /* `top` is never transitioned (that would re-lay out and re-fit the lyrics every frame);
+     clock/lyrics moves are animated with a transform FLIP in the script instead */
+  body.nolyrics #view{opacity:0;transform:translateY(14px);pointer-events:none}
+  body.nolyrics #clock{top:34vh}
   body.dark #bg{opacity:0} body.dark #tint{background:radial-gradient(70% 60% at 50% 45%,color-mix(in srgb,var(--c1) 10%,#050507),#000)}
   #clock{position:absolute;top:8vh;left:0;right:0;text-align:center;text-shadow:0 2px 24px rgba(0,0,0,.5);transition:opacity .4s}
   #clock small{display:block;font-size:2.3vh;font-weight:600;opacity:.85} #clock b{font-size:14vh;font-weight:600;letter-spacing:-.04em;line-height:1}
   body.noclock #clock{opacity:0}
-  #view{position:absolute;left:5vw;right:5vw;top:29vh;bottom:12vh;transition:top .4s}
+  #view{position:absolute;left:5vw;right:5vw;top:29vh;bottom:12vh;transition:opacity .5s,transform .5s}
   body.noclock #view{top:9vh}
 
   /* ---------- controls (fade in on mouse move) ---------- */
+  /* once faded out, visibility:hidden drops every glass panel (and its backdrop blur) from painting/compositing */
   #ui{position:absolute;inset:0;pointer-events:none;transition:opacity .45s;z-index:2}
-  body.idle #ui{opacity:0}
+  body.idle #ui{opacity:0;visibility:hidden;transition:opacity .45s,visibility 0s linear .45s}
+  body.idle .menu{visibility:hidden}
   #ui > *{pointer-events:auto} body.idle #ui > *{pointer-events:none}
   .glass{background:rgba(30,30,38,.6);backdrop-filter:blur(26px) saturate(1.5);box-shadow:0 0 0 1px rgba(255,255,255,.1),0 12px 40px -10px rgba(0,0,0,.65)}
   /* top-right "menu bar" */
@@ -30,7 +38,7 @@
   #bar button:hover{background:rgba(255,255,255,.1)} #bar button.on{background:rgba(255,255,255,.2)}
   #bar .sep{width:1px;height:18px;background:rgba(255,255,255,.15)}
   .dot{width:8px;height:8px;border-radius:50%;background:#777}.dot.ok{background:#32d74b}.dot.warn{background:#ffb020}.dot.bad{background:#ff453a}
-  .arrow{position:absolute;top:50%;transform:translateY(-50%);border:0;background:none;font-size:56px;font-weight:200;opacity:.5;cursor:pointer;padding:20px;line-height:1}
+  .arrow{position:absolute;top:50%;translate:0 -50%;border:0;background:none;font-size:56px;font-weight:200;opacity:.5;cursor:pointer;padding:20px;line-height:1}
   .arrow:hover{opacity:1}.arrow.l{left:10px}.arrow.r{right:10px}
   #info{position:absolute;left:36px;bottom:36px;max-width:40vw}
   #info small{font-size:13px;opacity:.75} #info h2{margin:2px 0 4px;font:600 40px Georgia,'Palatino Linotype',serif;letter-spacing:-.5px}
@@ -38,7 +46,7 @@
   #info .acts{display:flex;gap:12px;align-items:center}
   .pinb{width:36px;height:36px;border-radius:50%;border:0;cursor:pointer;font-size:14px}.pinb.on{background:#fff;color:#000}
   #dots{display:flex;gap:6px}
-  #dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer}#dots i.on{background:#fff;transform:scale(1.2)}
+  #dots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer}#dots i.on{background:#fff}
   #player{position:absolute;right:28px;bottom:32px;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border-radius:20px;max-width:36vw}
   #player .a{width:54px;height:54px;border-radius:12px;background:#333 center/cover;flex:none}
   #player .m{min-width:0} #player b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} #player span{font-size:12px;opacity:.7;white-space:nowrap}
@@ -49,9 +57,11 @@
   #player svg{width:15px;height:15px;fill:currentColor}
 
   /* ---------- dropdown menus (menu-bar style, top right) ---------- */
+  /* closed menus: hidden after the fade-out, so their backdrop blur over the constantly repainting lyrics stops entirely */
   .menu{position:absolute;top:62px;right:16px;width:290px;max-height:calc(100vh - 90px);overflow-y:auto;border-radius:14px;padding:6px;
-    opacity:0;transform:translateY(-6px);pointer-events:none !important;transition:opacity .15s,transform .15s;font-size:13.5px}
-  .menu.open{opacity:1;transform:none;pointer-events:auto !important}
+    opacity:0;visibility:hidden;transform-origin:top right;transform:translateY(-6px) scale(.97);pointer-events:none !important;
+    transition:opacity .18s,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s;font-size:13.5px}
+  .menu.open{opacity:1;visibility:visible;transform:none;pointer-events:auto !important;transition-delay:0s}
   .menu::-webkit-scrollbar{width:8px}.menu::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:8px}
   .mh{padding:8px 10px 3px;font-size:11.5px;font-weight:600;opacity:.5}
   .mi{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:7px;cursor:pointer;min-height:28px}
@@ -72,16 +82,53 @@
   .mrow select{background:rgba(255,255,255,.12);border:0;border-radius:7px;padding:4px 8px;font-size:12.5px;outline:none;max-width:150px}
   .mrow select option{background:#2a2a33}
   .sw{position:relative;width:36px;height:21px;background:rgba(255,255,255,.2);border-radius:11px;cursor:pointer;flex:none}
-  .sw::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff;transition:.15s}
-  .sw.on{background:#0a84ff}.sw.on::after{left:17px}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:50%;background:#fff}
+  .sw.on{background:#0a84ff}.sw.on::after{translate:15px 0}
   .mtitle{display:flex;justify-content:space-between;align-items:center;padding:8px 10px 6px;font-weight:700;font-size:14px}
   .gcols{display:flex;justify-content:space-around;padding:6px 10px 8px}
   .gcols label{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;opacity:.8}
   .gcols input{width:44px;height:44px;border:0;padding:0;background:none;cursor:pointer}
   .gcols input::-webkit-color-swatch-wrapper{padding:0}.gcols input::-webkit-color-swatch{border:2px solid rgba(255,255,255,.35);border-radius:50%}
   .dis{opacity:.35;pointer-events:none}
-  #toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:10px 18px;border-radius:99px;font-size:15px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:3}
-  #toast.show{opacity:1}
+  /* the toast is glass too: hidden after its fade so its backdrop blur is not kept alive */
+  #toast{position:absolute;left:50%;top:50%;translate:-50% -50%;scale:.92;padding:10px 18px;border-radius:99px;font-size:15px;font-weight:600;opacity:0;visibility:hidden;
+    transition:opacity .3s,scale .3s,visibility 0s linear .3s;pointer-events:none;z-index:3}
+  #toast.show{opacity:1;scale:1;visibility:visible;transition-delay:0s}
+
+  /* ---------- motion + responsive ---------- */
+  /* Press/hover use the individual `scale` property, so they compose with layout transforms
+     (the arrows' translateY(-50%) no longer jumps when pressed). Press: 80 ms; release: 200 ms spring. */
+  button{transition:background-color .15s,color .15s,opacity .2s,scale .2s cubic-bezier(.3,1.5,.5,1)}
+  button:active:not(:disabled){scale:.92;transition-duration:.08s}
+  .arrow{transition:opacity .2s,scale .2s cubic-bezier(.3,1.5,.5,1)}.arrow:hover{scale:1.12}button.arrow:active:not(:disabled){scale:.9}
+  button:focus-visible,.mi:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  #info h2,#info small,#info p{animation:fadeUp .4s cubic-bezier(.2,.8,.2,1)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  #dots i{transition:scale .2s,background-color .2s}#dots i.on{scale:1.2}#dots i:hover{background:rgba(255,255,255,.7);scale:1.4}
+  .mi{transition:background-color .12s}
+  .sw::after{transition:translate .2s cubic-bezier(.3,1.4,.5,1)}.sw{transition:background-color .2s,scale .2s cubic-bezier(.3,1.5,.5,1)}
+  .sw:active{scale:.92;transition-duration:.08s}
+  #player .a{transition:scale .3s}#player:hover .a{scale:1.06}
+  #clock{top:clamp(14px,5vh,60px)}
+  #clock b{font-size:clamp(44px,min(13vh,12vw),180px)}
+  #clock small{font-size:clamp(12px,2.3vh,22px)}
+  #view{top:clamp(130px,min(27vh,24vw + 40px),300px);bottom:clamp(70px,12vh,140px);left:clamp(12px,5vw,90px);right:clamp(12px,5vw,90px)}
+  body.noclock #view{top:clamp(24px,9vh,90px)}
+  @media (max-height:700px){.full .st-messages .av{width:1.7em;height:1.7em}.full .st-messages .hd{gap:.1em;padding:.3em}.full .st-messages .bb,.full .st-messages .mcard{font-size:1.05em}}
+  @media (max-width:900px){
+    #info{max-width:none;right:24px;left:24px;bottom:96px}#info h2{font-size:30px}
+    #player{left:16px;right:16px;bottom:16px;max-width:none}
+    #view{bottom:clamp(120px,30vh,260px)}
+    .arrow{display:none}
+  }
+  @media (max-width:560px){
+    #bar #statTxt,#bar #winBtn{display:none}#bar{right:8px;top:8px}
+    .menu{left:8px;right:8px;width:auto;top:56px}
+    #info p,#dots{display:none}#info h2{font-size:24px}
+    #player .c button:not(.big):not(#pv):not(#nx){display:none}#player .m{flex:1}
+  }
+  @media (max-height:520px){#clock{display:none}#view{top:9vh !important}#info{display:none}}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style></head><body>
 <div id="bg"></div><div id="tint"></div>
 <div id="clock"><small id="date"></small><b id="time"></b></div>
@@ -111,6 +158,11 @@
   <div class="menu glass" id="mLyr">
     <div class="mh">Style</div><div id="mStyles"></div>
     <div class="ms"></div>
+    <div class="mh">Shuffle styles</div>
+    <div class="mi" data-v="lyricShuffle:off"><span class="ck"></span><span class="lbl">Off</span></div>
+    <div class="mi" data-v="lyricShuffle:song"><span class="ck"></span><span class="lbl">New style every song</span></div>
+    <div class="mi" data-v="lyricShuffle:minute"><span class="ck"></span><span class="lbl">New style every minute</span></div>
+    <div class="ms"></div>
     <div class="mi" data-t="keepAwake"><span class="ck"></span><span class="lbl">Keep Screen Awake</span></div>
     <div class="mi" data-t="lyrics"><span class="ck"></span><span class="lbl">Floating lyrics when not full screen</span></div>
     <div class="ms"></div>
@@ -134,6 +186,7 @@
     <div class="mi" data-v="stageBg:art"><span class="ck"></span><span class="lbl">Album art</span></div>
     <div class="mi" data-v="stageBg:dark"><span class="ck"></span><span class="lbl">Dark</span></div>
     <div class="mi" data-t="stageClock"><span class="ck"></span><span class="lbl">Show clock</span></div>
+    <div class="mi" data-t="stageLyrics"><span class="ck"></span><span class="lbl">Show lyrics</span><span style="opacity:.5;font-size:11px">H</span></div>
     <div class="ms"></div>
     <div class="mi" id="openWin"><span class="ck"></span><span class="lbl">Open Glowrim window…</span></div>
     <div class="mi" id="closeFull"><span class="ck"></span><span class="lbl">Close full screen</span><span style="opacity:.5;font-size:11px">Esc</span></div>
@@ -147,6 +200,7 @@
     <div class="mh">Thickness</div><div class="mr"><input type="range" data-n="thickness" min="2" max="60"><span class="v"></span></div>
     <div class="mh">Glow</div><div class="mr"><input type="range" data-n="glow" min="0" max="140"><span class="v"></span></div>
     <div class="mh">Brightness</div><div class="mr"><input type="range" data-n="idleBrightness" min="0.1" max="1" step="0.05"><span class="v"></span></div>
+    <div class="mh" id="splitH">Color split</div><div class="mr" id="splitR"><input type="range" data-n="glowSplit" min="10" max="90" step="5"><span class="v"></span></div>
     <div class="mh">Reactivity</div><div class="mr"><input type="range" data-n="intensity" min="0.3" max="2" step="0.05"><span class="v"></span></div>
     <div class="ms"></div>
     <div class="mrow"><span>Override album color</span><div class="sw" data-k="albumColors" data-invert="1"></div></div>
@@ -163,38 +217,74 @@
 <script>
 const $ = id => document.getElementById(id), body = document.body;
 const glow = Glow($('glow'));
-const view = new LyricsView($('view'), { full: true, scale: Math.max(1.15, innerHeight / 720) });
+const calcScale = () => Math.max(.7, Math.min(innerHeight / 720, innerWidth / 900) * 1.15);
+const view = new LyricsView($('view'), { full: true, scale: calcScale() });
 $('view').classList.add('full');
-let S = null, DISP = [], menu = null;
+let S = null, DISP = [], menu = null, fitT, lastMenuKey = '';
+addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(() => { view.opt.scale = calcScale(); if (S) view.setSettings(S); }, 80); });
 const FONTS = ['Segoe UI Variable Display', 'Bahnschrift', 'Georgia', 'Cambria', 'Arial Black', 'Palatino Linotype', 'Cascadia Code'];
+const act = s => s.activeStyle || s.lyricStyle;      // the style on screen (Shuffle may have picked it)
 const idxOf = k => Math.max(0, LYRIC_STYLES.findIndex(s => s.key === k));
-const ck = (el, on) => { el.querySelector('.ck').textContent = on ? '✓' : ''; };
+const RM = matchMedia('(prefers-reduced-motion: reduce)'), EASE = 'cubic-bezier(.2,.8,.2,1)';
+// every write below is skipped when nothing changed: settings arrive on every slider tick, and rewriting
+// text nodes (even with the same text) invalidates layout for the whole menu
+const txt = (el, v) => { v = v == null ? '' : String(v); if (el.textContent !== v) el.textContent = v; };
+const setVal = (el, v) => { if (el.value !== v && document.activeElement !== el) el.value = v; };
+const ck = (el, on) => txt(el.querySelector('.ck'), on ? '✓' : '');
+const MI_T = [...document.querySelectorAll('.mi[data-t]')], MI_V = [...document.querySelectorAll('.mi[data-v]')], SWS = [...document.querySelectorAll('.sw[data-k]')],
+  SELS = [...document.querySelectorAll('select[data-s]')], RANGES = [...document.querySelectorAll('input[data-n]')], LCOLS = [...document.querySelectorAll('input[data-c]')];
+// FLIP: let `top` jump (one layout), then slide from the old spot with a compositor-only `translate`
+function flip(els, mutate) {
+  if (RM.matches) return mutate();
+  const y0 = els.map(el => el.offsetTop); mutate();
+  els.forEach((el, i) => { const d = y0[i] - el.offsetTop;
+    if (Math.abs(d) > 1) el.animate([{ translate: `0 ${d}px` }, { translate: '0 0' }], { duration: 450, easing: EASE }); });
+}
+let lastC = '', lastArt = null, lastPlaying = null, lastSplit = null;
 
 // ---------- data from the app ----------
 api.onSettings(s => {
-  const prevStyle = S && S.lyricStyle; S = s; view.setSettings(s); glow.set(s);
-  const r = document.documentElement.style; r.setProperty('--c1', s.lc1 || s.c1); r.setProperty('--c2', s.lc2 || s.c2);
-  body.classList.toggle('dark', s.stageBg === 'dark'); body.classList.toggle('noclock', !s.stageClock);
-  document.querySelectorAll('.mi[data-t]').forEach(el => ck(el, !!s[el.dataset.t]));
-  document.querySelectorAll('.mi[data-v]').forEach(el => { const [k, v] = el.dataset.v.split(':'); ck(el, s[k] === v); });
-  document.querySelectorAll('.sw[data-k]').forEach(el => { const v = !!s[el.dataset.k]; el.classList.toggle('on', el.dataset.invert ? !v : v); });
-  document.querySelectorAll('select[data-s]').forEach(el => el.value = String(s[el.dataset.s]));
-  document.querySelectorAll('input[data-n]').forEach(r => { if (document.activeElement !== r) r.value = s[r.dataset.n]; r.nextElementSibling.textContent = s[r.dataset.n]; });
-  if (document.activeElement !== $('scale')) $('scale').value = s.lyricScale; $('scaleV').textContent = s.lyricScale + '%';
+  const prevStyle = S && act(S), first = !S; S = s; view.setSettings(s); glow.set(s);
+  const c1 = s.lc1 || s.c1, c2 = s.lc2 || s.c2;
+  if (c1 + c2 !== lastC) { lastC = c1 + c2; const r = document.documentElement.style; r.setProperty('--c1', c1); r.setProperty('--c2', c2); }
+  body.classList.toggle('dark', s.stageBg === 'dark');
+  const noclock = !s.stageClock, nolyr = s.stageLyrics === false;
+  if (noclock !== body.classList.contains('noclock') || nolyr !== body.classList.contains('nolyrics')) {
+    const set = () => { body.classList.toggle('noclock', noclock); body.classList.toggle('nolyrics', nolyr); };
+    first ? set() : flip([$('view'), $('clock')], set);
+  }
+  const sd = s.glowColors === 1 ? 'none' : '';
+  if (sd !== lastSplit) { lastSplit = sd; $('splitH').style.display = $('splitR').style.display = $('sec2').style.display = sd; }
+  MI_T.forEach(el => ck(el, !!s[el.dataset.t]));
+  MI_V.forEach(el => { const [k, v] = el.dataset.v.split(':'); ck(el, s[k] === v); });
+  SWS.forEach(el => { const v = !!s[el.dataset.k]; el.classList.toggle('on', el.dataset.invert ? !v : v); });
+  SELS.forEach(el => setVal(el, String(s[el.dataset.s])));
+  RANGES.forEach(r => { setVal(r, String(s[r.dataset.n])); txt(r.nextElementSibling, s[r.dataset.n]); });
+  setVal($('scale'), String(s.lyricScale)); txt($('scaleV'), s.lyricScale + '%');
   $('mCols').classList.toggle('dis', s.lyricMatchAlbum);
-  document.querySelectorAll('input[data-c]').forEach(i => i.value = (s.lyricColors || {})[i.dataset.c] || '#ffffff');
-  $('color1').value = s.color1; $('color2').value = s.color2;
-  $('gcols').classList.toggle('dis', s.albumColors); $('sec2').style.display = s.glowColors === 1 ? 'none' : '';
-  renderInfo(); renderStyles(); renderFonts(); renderDisplays();
-  if (prevStyle && prevStyle !== s.lyricStyle) toast(LYRIC_STYLES[idxOf(s.lyricStyle)].name);
+  LCOLS.forEach(i => setVal(i, (s.lyricColors || {})[i.dataset.c] || '#ffffff'));
+  setVal($('color1'), s.color1); setVal($('color2'), s.color2);
+  $('gcols').classList.toggle('dis', s.albumColors);
+  // rebuild menus only when their contents change, never on a slider tick (keeps hover + drags smooth)
+  const mk = [act(s), s.lyricShuffle, (s.pinnedStyles || []).join(), s.lyricFont, (s.stageDisplays || []).join(), s.glowDisplays].join('|');
+  if (mk !== lastMenuKey) { lastMenuKey = mk; renderInfo(); renderStyles(); renderFonts(); renderDisplays(); }
+  if (prevStyle && prevStyle !== act(s)) {
+    toast((s.lyricShuffle !== 'off' ? '🔀 ' : '') + LYRIC_STYLES[idxOf(act(s))].name);
+    if (!RM.matches) ['iFam', 'iName', 'iDesc'].forEach((id, k) => $(id).animate(
+      [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 400, delay: k * 30, easing: EASE, fill: 'backwards' }));
+  }
 });
-api.onNow(n => { view.setNow(n); $('t').textContent = n.title || 'Nothing playing'; $('ar').textContent = n.artist || '';
-  $('art').style.backgroundImage = n.art ? `url("${n.art}")` : ''; $('bg').style.backgroundImage = n.art ? `url("${n.art}")` : ''; });
-api.onTime(t => { view.setTime(t); $('ppI').innerHTML = t.status === 'Playing' ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>';
+api.onNow(n => { view.setNow(n); txt($('t'), n.title || 'Nothing playing'); txt($('ar'), n.artist || '');
+  const art = n.art || '';
+  if (art !== lastArt) { lastArt = art; const u = art ? `url("${art}")` : '';   // re-rasterises the 80px blur: only for a new cover
+    $('art').style.backgroundImage = u; $('bg').style.backgroundImage = u; } });
+api.onTime(t => { view.setTime(t);
+  const playing = t.status === 'Playing';
+  if (playing !== lastPlaying) { lastPlaying = playing; $('ppI').innerHTML = playing ? '<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>' : '<path d="M7 4v16l13-8z"/>'; }
   $('b15').disabled = $('f15').disabled = !t.canSeek; });
 api.onLyrics(l => view.setLyrics(l));
 api.onLevel(v => { view.level(v); glow.level(v); });
-api.onDisplays(d => { DISP = d; renderDisplays(); });
+api.onDisplays(d => { DISP = d; lastMenuKey = ''; renderDisplays(); });
 api.onStatus(st => {
   const app = (st.app || '').replace(/\.exe$/i, '').split('!').pop(), ok = st.helper === 'running' && st.title;
   $('dot').className = 'dot ' + (ok && st.lyrics === 'synced' ? 'ok' : ok || st.helper === 'running' ? 'warn' : 'bad');
@@ -205,16 +295,16 @@ api.onStatus(st => {
 // ---------- style name, dots, arrows ----------
 LYRIC_STYLES.forEach(s => { const d = document.createElement('i'); d.title = s.name; d.onclick = () => pick(s.key); $('dots').appendChild(d); });
 const pick = key => api.set({ lyricStyle: key });
-const step = d => pick(LYRIC_STYLES[(idxOf(S.lyricStyle) + d + LYRIC_STYLES.length) % LYRIC_STYLES.length].key);
+const step = d => pick(LYRIC_STYLES[(idxOf(act(S)) + d + LYRIC_STYLES.length) % LYRIC_STYLES.length].key);
 $('pS').onclick = () => step(-1); $('nS').onclick = () => step(1);
 function renderInfo() {
-  const st = LYRIC_STYLES[idxOf(S.lyricStyle)];
-  $('iFam').textContent = st.native ? 'iPhone screens' : st.family; $('iName').textContent = st.name; $('iDesc').textContent = st.desc;
+  const st = LYRIC_STYLES[idxOf(act(S))];
+  $('iFam').textContent = (S.lyricShuffle !== 'off' ? '🔀 Shuffle · ' : '') + (st.native ? 'iPhone screens' : st.family); $('iName').textContent = st.name; $('iDesc').textContent = st.desc;
   $('pinBtn').classList.toggle('on', (S.pinnedStyles || []).includes(st.key));
   [...$('dots').children].forEach((d, k) => d.classList.toggle('on', LYRIC_STYLES[k].key === st.key));
 }
 const togglePin = k => { const p = new Set(S.pinnedStyles || []); p.has(k) ? p.delete(k) : p.add(k); api.set({ pinnedStyles: [...p] }); };
-$('pinBtn').onclick = () => togglePin(S.lyricStyle);
+$('pinBtn').onclick = () => togglePin(act(S));
 
 // ---------- menus ----------
 function openMenu(m) {
@@ -228,7 +318,7 @@ $('mGlowBtn').onclick = e => { e.stopPropagation(); openMenu('mGlow'); };
 addEventListener('mousedown', e => { if (menu && !e.target.closest('.menu') && !e.target.closest('#bar')) openMenu(null); });
 
 function renderStyles() {
-  $('mStyles').innerHTML = LYRIC_STYLES.map(s => `<div class="mi" data-st="${s.key}"><span class="ck">${S.lyricStyle === s.key ? '✓' : ''}</span>
+  $('mStyles').innerHTML = LYRIC_STYLES.map(s => `<div class="mi" data-st="${s.key}"><span class="ck">${act(S) === s.key ? '✓' : ''}</span>
     <span class="lbl">${s.name}</span><button class="pn ${(S.pinnedStyles || []).includes(s.key) ? 'on' : ''}" data-pin="${s.key}" title="Pin to tray">📌</button></div>`).join('');
   $('mStyles').querySelectorAll('.mi').forEach(el => el.onclick = e => { if (e.target.dataset.pin) return togglePin(e.target.dataset.pin); pick(el.dataset.st); });
 }
@@ -249,11 +339,12 @@ document.querySelectorAll('.mi[data-t]').forEach(el => el.onclick = () => api.se
 document.querySelectorAll('.mi[data-v]').forEach(el => el.onclick = () => { const [k, v] = el.dataset.v.split(':'); api.set({ [k]: v }); });
 document.querySelectorAll('.sw[data-k]').forEach(el => el.onclick = () => { const on = el.classList.contains('on'); api.set({ [el.dataset.k]: el.dataset.invert ? on : !on }); });
 document.querySelectorAll('select[data-s]').forEach(el => el.onchange = () => api.set({ [el.dataset.s]: el.dataset.num ? +el.value : el.value }));
-document.querySelectorAll('input[data-n]').forEach(r => r.oninput = () => api.set({ [r.dataset.n]: +r.value }));
-document.querySelectorAll('input[data-c]').forEach(i => i.oninput = () => api.set({ lyricColors: { ...S.lyricColors, [i.dataset.c]: i.value } }));
+// the value label follows the thumb at once; the settings round-trip only confirms it
+RANGES.forEach(r => r.oninput = () => { const v = +r.value; txt(r.nextElementSibling, v); api.set({ [r.dataset.n]: v }); });
+LCOLS.forEach(i => i.oninput = () => api.set({ lyricColors: { ...S.lyricColors, [i.dataset.c]: i.value } }));
 ['color1', 'color2'].forEach(k => $(k).oninput = e => api.set({ [k]: e.target.value }));
 $('gDisp').onchange = e => api.set({ glowDisplays: e.target.value });
-$('scale').oninput = e => api.set({ lyricScale: +e.target.value }); $('scaleR').onclick = () => api.set({ lyricScale: 100 });
+$('scale').oninput = e => { const v = +e.target.value; txt($('scaleV'), v + '%'); api.set({ lyricScale: v }); }; $('scaleR').onclick = () => api.set({ lyricScale: 100 });
 $('resetC').onclick = () => api.set({ resetColors: true });
 $('openWin').onclick = () => api.openWindow(); $('closeFull').onclick = () => api.stage(false);
 
@@ -265,19 +356,34 @@ $('winBtn').onclick = () => api.openWindow(); $('exitBtn').onclick = () => api.s
 $('statBtn').onclick = () => api.openWindow('status');
 
 // ---------- auto-hide; keyboard ----------
-let idleT;
-function wake() { body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => { if (!menu) body.classList.add('idle'); }, 2600); }
+let sx = null; addEventListener('touchstart', e => { sx = e.touches[0].clientX; wake(); }, { passive: true });
+addEventListener('touchend', e => { if (sx === null || menu) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (Math.abs(dx) > 60) step(dx < 0 ? 1 : -1); }, { passive: true });
+// mousemove can fire 500-1000x a second: wake() only stamps the time and touches the DOM when the state flips,
+// and one re-arming timer replaces a clearTimeout/setTimeout pair per event
+let idleT = 0, idle = false, lastAct = 0;
+const IDLE_MS = 2600;
+function idleCheck() {
+  const left = IDLE_MS - (performance.now() - lastAct);
+  if (left > 15) { idleT = setTimeout(idleCheck, left); return; }
+  idleT = 0; if (!menu) { idle = true; body.classList.add('idle'); }
+}
+function wake() {
+  lastAct = performance.now();
+  if (idle) { idle = false; body.classList.remove('idle'); }
+  if (!idleT) idleT = setTimeout(idleCheck, IDLE_MS);
+}
 addEventListener('mousemove', wake); addEventListener('mousedown', wake); wake();
 addEventListener('keydown', e => {
   wake(); if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
   if (e.key === 'Escape') { menu ? openMenu(null) : api.stage(false); }
   else if (e.key === 'ArrowLeft') step(-1); else if (e.key === 'ArrowRight') step(1);
+  else if (e.key === 'h' || e.key === 'H') { api.set({ stageLyrics: S.stageLyrics === false }); toast(S.stageLyrics === false ? 'Lyrics on' : 'Lyrics hidden'); }
   else if (e.key === ' ') { e.preventDefault(); api.control('toggle'); }
   else if (e.key === '+' || e.key === '=') api.set({ lyricScale: Math.min(200, S.lyricScale + 10) });
   else if (e.key === '-') api.set({ lyricScale: Math.max(50, S.lyricScale - 10) });
 });
 let tt; function toast(t) { $('toast').textContent = t; $('toast').classList.add('show'); clearTimeout(tt); tt = setTimeout(() => $('toast').classList.remove('show'), 1100); }
-function clock() { const d = new Date(); $('time').textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M/i, '');
-  $('date').textContent = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }); }
+function clock() { const d = new Date(); txt($('time'), d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M/i, ''));
+  txt($('date'), d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })); }
 clock(); setInterval(clock, 5000);
 </script></body></html>

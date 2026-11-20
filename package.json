@@ -1,6 +1,6 @@
 {
   "name": "glowrim",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "description": "Ambient screen-edge glow and synced full-screen lyrics for Windows",
   "main": "main.js",
   "scripts": {

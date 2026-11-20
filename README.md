@@ -4,7 +4,7 @@ Ambient screen-edge glow **and** synced lyrics for Windows, driven by whatever i
 Spotify, Apple Music, YouTube in a browser, or anything else in Windows' media controls.
 
 - **Glow** — a rim of light around your screen in the two strongest colours of the album cover, pulsing with the beat.
-- **Full-screen lyrics** — the main lyrics view: blurred cover art, a lock-screen clock and one of 16 lyric styles,
+- **Full-screen lyrics** — the main lyrics view: blurred cover art, a lock-screen clock and one of 17 lyric styles,
   with a Verci-style settings bar (Style · Size · Font · Aesthetics · Display) along the top. The glow runs here too.
 - **Floating lyrics** — a click-through lyrics window on the desktop when you're not in full screen.
 - **Now playing** — cover, title, play/pause, skip and ±15 s.
@@ -30,6 +30,11 @@ playback, pinned styles, keep screen awake, desktop lyrics, text size and which 
 | Motion scenes | Codestyle · Codestyle Visual · Branches · Web · Constellation |
 | Native Design (iPhone screens) | Messages · Money · Map · Notifications |
 | Classic | Stack · Karaoke · Minimal |
+| Album cover | Poster — the cover as a poster, title and artist printed beside it, the sung line next to it |
+
+**Shuffle styles** (Style menu, Look tab or tray) picks a new style on its own — every song, or every minute too.
+It draws from your pinned 📌 styles (all of them if fewer than two are pinned) and never repeats the one on screen.
+Choosing a style by hand holds it until Shuffle's next change.
 
 Words light up as they're sung. Lyrics come from [LRCLIB](https://lrclib.net) (free and open); when a song has
 real per-word timing it's used, otherwise word timing is estimated within each line. The Status tab says which.
@@ -66,7 +71,7 @@ Debug helpers: `GLOWRIM_DEBUG=1` prints the log to the console (it's always writ
 | `media.ps1` | PowerShell bridge to Windows media controls (track, art, timeline, controls, full-screen detection) |
 | `audio.html` | Hidden window: system-audio loopback beat analysis + album-art palette extraction |
 | `glow.js` | Shared edge-glow renderer (desktop overlay + full-screen view) |
-| `engine.js` / `engine.css` | Lyrics engine and all 16 styles |
+| `engine.js` / `engine.css` | Lyrics engine and all 17 styles |
 | `stage.html` | Full-screen lyrics view with the settings bar |
 | `lyrics.html` | Floating desktop lyrics |
 | `panel.html` | Main window: live style preview, gallery, player, settings, status checklist |

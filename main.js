@@ -23,7 +23,7 @@ process.on('unhandledRejection', e => log('unhandled', e));
 const STYLE_NAMES = {
   ship: 'Ship', fisheye: 'Fisheye', visual: 'Visual', fisheyeVisual: 'Fisheye Visual', codestyle: 'Codestyle', codestyleVisual: 'Codestyle Visual',
   branches: 'Branches', web: 'Web', constellation: 'Constellation', messages: 'Native Design', money: 'Native Design Money', map: 'Native Design Map',
-  notifications: 'Native Design Notifications', stack: 'Stack', karaoke: 'Karaoke', minimal: 'Minimal'
+  notifications: 'Native Design Notifications', stack: 'Stack', karaoke: 'Karaoke', minimal: 'Minimal', poster: 'Poster'
 };
 const DEFAULTS = {
   v: 3,
@@ -31,14 +31,16 @@ const DEFAULTS = {
   enabled: true, glowMode: 'music', glowColors: 2, color1: '#ff3d81', color2: '#4d7cff', albumColors: true,
   thickness: 10, glow: 60, intensity: 1.0, speed: 1.0, idleBrightness: 0.8, glowDisplays: 'all', glowOverFullscreen: true,
   // lyrics
-  lyrics: true, lyricStyle: 'visual', pinnedStyles: ['visual', 'messages', 'codestyle', 'stack'],
+  lyrics: true, lyricStyle: 'visual', lyricShuffle: 'off',   // off | song (new style every song) | minute (and every minute)
+  pinnedStyles: ['visual', 'messages', 'codestyle', 'stack', 'poster'],
   lyricFont: 'Segoe UI Variable Display', lyricScale: 100, lyricMatchAlbum: true,
   lyricColors: { text: '#f2f2f2', hl: '#ff7a7a', sec: '#ffffff' },
   lyricOffset: 0, lyricLock: true, lyricBackdrop: false, lyricBounds: null,
   // full-screen lyrics (the main lyrics view)
-  keepAwake: true, stageDisplays: [], stageBg: 'art', stageClock: true, openFullOnLaunch: true,
+  keepAwake: true, stageDisplays: [], stageBg: 'art', stageClock: true, openFullOnLaunch: true, stageLyrics: true,
+  glowSplit: 60,
   // general
-  startup: false
+  startup: false, onboarded: false
 };
 let settings = JSON.parse(JSON.stringify(DEFAULTS));
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
@@ -54,6 +56,7 @@ function load() {
     }
     settings = { ...settings, ...s, v: DEFAULTS.v };
     if (!STYLE_NAMES[settings.lyricStyle]) settings.lyricStyle = DEFAULTS.lyricStyle;
+    if (!['off', 'song', 'minute'].includes(settings.lyricShuffle)) settings.lyricShuffle = 'off';
   } catch {}
 }
 let saveT;
@@ -65,6 +68,7 @@ let nowPlaying = { title: '', artist: '', status: 'None', app: '', art: '' };
 let timeline = { pos: 0, dur: 0, upd: 0, status: 'None', canSeek: false };
 let lyrics = { key: '', state: 'none', lines: [], plain: '', timing: null };
 let artColors = null, songNudge = 0, quitting = false, resting = false, fsDisplayId = null;
+let shuffleStyle = null, shuffleTimer = null;
 let stageAuto = false, awakeId = null, lastHelperMsg = 0, helperStarted = 0;
 const preload = path.join(__dirname, 'preload.js');
 const unpacked = f => path.join(__dirname, f).replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
@@ -76,14 +80,40 @@ function state() {
   const c1 = useArt ? artColors[0] : settings.color1;
   const c2 = settings.glowColors === 1 ? c1 : (useArt ? artColors[1] : settings.color2);
   // lyric colours follow the album cover independently of the glow's colour count
-  return { ...settings, c1, c2, lc1: useArt ? artColors[0] : settings.color1, lc2: useArt ? artColors[1] : settings.color2, songNudge, playing: playing() };
+  const activeStyle = settings.lyricShuffle !== 'off' && shuffleStyle ? shuffleStyle : settings.lyricStyle;
+  return { ...settings, c1, c2, lc1: useArt ? artColors[0] : settings.color1, lc2: useArt ? artColors[1] : settings.color2, songNudge, playing: playing(), activeStyle };
+}
+// ---------- style shuffle ----------
+// Picks from the pinned styles when two or more are pinned (your favourites), otherwise from every style.
+// Never repeats the style that is already showing.
+function shuffleNext() {
+  if (settings.lyricShuffle === 'off') return false;
+  const pinned = (settings.pinnedStyles || []).filter(k => STYLE_NAMES[k]);
+  const pool = pinned.length >= 2 ? pinned : Object.keys(STYLE_NAMES);
+  const cur = shuffleStyle || settings.lyricStyle, opts = pool.filter(k => k !== cur);
+  const next = opts[Math.floor(Math.random() * opts.length)] || cur;
+  const changed = next !== shuffleStyle; shuffleStyle = next; return changed;
+}
+function syncShuffle() {
+  clearInterval(shuffleTimer); shuffleTimer = null;
+  if (settings.lyricShuffle === 'off') { shuffleStyle = null; return; }
+  if (!shuffleStyle) shuffleNext();
+  if (settings.lyricShuffle === 'minute') shuffleTimer = setInterval(() => { if (playing() && shuffleNext()) { broadcast(); refreshMenu(); } }, 60000);
 }
 function send(win, ch, data) { if (alive(win)) win.webContents.send(ch, data); }
 const uiWindows = () => [panel, lyricsWin, ...stageWins];
-function broadcast() {
+function broadcastNow() {
   const s = state();
   overlays.forEach(w => send(w, 'settings', s));
   uiWindows().forEach(w => send(w, 'settings', s));
+}
+// Slider drags fire 100+ patches a second. Send the first one at once (no added latency),
+// then at most one every 12 ms, always ending on the latest value.
+let bcT = null, bcPending = false;
+function broadcast() {
+  if (bcT) { bcPending = true; return; }
+  broadcastNow();
+  bcT = setTimeout(function tail() { bcT = null; if (bcPending) { bcPending = false; broadcast(); } }, 12);
 }
 const nowPayload = () => ({ ...nowPlaying, colors: artColors });
 function sendNow() { const n = nowPayload(); uiWindows().forEach(w => send(w, 'now', n)); }
@@ -275,7 +305,7 @@ async function findLyrics(title, artist, durSec) {
 async function loadLyrics(force) {
   const key = nowPlaying.title ? `${nowPlaying.artist}|${nowPlaying.title}` : '';
   if (key === lyrics.key && !force) return;
-  if (key !== lyrics.key) { songNudge = 0; broadcast(); }          // per-song nudge resets with the next song
+  if (key !== lyrics.key) { songNudge = 0; if (key) shuffleNext(); broadcast(); refreshMenu(); }   // per-song nudge resets with the next song; Shuffle moves on
   // No track, or browser media with no artist (e.g. "(8) Instagram") — nothing to look up.
   if (!key || !nowPlaying.artist.trim()) { lyrics = { key, state: 'none', lines: [], plain: '', timing: null }; sendLyrics(); sendStatus(); return; }
   if (force) lyricCache.delete(key);
@@ -311,7 +341,7 @@ function sendStatus() {
 function openPanel() {
   if (alive(panel)) { bringToFront(); return; }
   panel = new BrowserWindow({
-    width: 980, height: 820, minWidth: 820, minHeight: 640, title: 'Glowrim',
+    width: 980, height: 820, minWidth: 360, minHeight: 480, title: 'Glowrim',
     backgroundColor: '#07070a', autoHideMenuBar: true, icon: appIcon(64), show: false,
     webPreferences: { preload }
   });
@@ -342,8 +372,12 @@ function appIcon(s = 16) {
 }
 
 // ---------- tray: only what you reach for mid-song ----------
-function refreshMenu() {
-  if (!tray) return;
+// Rebuilding the native tray menu is slow; never do it on every slider tick.
+let menuT = null;
+function refreshMenu() { clearTimeout(menuT); menuT = setTimeout(refreshMenuNow, 300); }
+function refreshMenuNow() {
+  menuT = null;
+  if (!tray || quitting || tray.isDestroyed()) return;                // a deferred rebuild can land mid-quit
   const np = nowPlaying.title ? `${nowPlaying.title} — ${nowPlaying.artist}` : 'Nothing playing';
   tray.setToolTip(`Glowrim · ${np}`.slice(0, 127));
   const has = !!nowPlaying.title;
@@ -358,9 +392,11 @@ function refreshMenu() {
     { label: 'Open Glowrim', click: openPanel },
     { type: 'separator' },
     { label: 'Style', enabled: false },
-    ...(pinned.length ? pinned : [settings.lyricStyle]).map(k => ({ label: STYLE_NAMES[k], type: 'radio', checked: settings.lyricStyle === k, click: () => applyPatch({ lyricStyle: k }) })),
+    ...(pinned.length ? pinned : [settings.lyricStyle]).map(k => ({ label: STYLE_NAMES[k], type: 'radio', checked: settings.lyricShuffle === 'off' && settings.lyricStyle === k, click: () => applyPatch({ lyricShuffle: 'off', lyricStyle: k }) })),
+    { label: 'Shuffle styles', submenu: [['off', 'Off'], ['song', 'New style every song'], ['minute', 'New style every minute']].map(([v, l]) => ({ label: l, type: 'radio', checked: settings.lyricShuffle === v, click: () => applyPatch({ lyricShuffle: v }) })) },
     { type: 'separator' },
     { label: 'Keep screen awake', type: 'checkbox', checked: settings.keepAwake, click: i => applyPatch({ keepAwake: i.checked }) },
+    { label: 'Lyrics in full screen (H)', type: 'checkbox', checked: settings.stageLyrics, click: i => applyPatch({ stageLyrics: i.checked }) },
     { label: 'Show lyrics on desktop', type: 'checkbox', checked: settings.lyrics, click: i => applyPatch({ lyrics: i.checked }) },
     { label: stageWins.length ? 'Close full-screen lyrics' : 'Full-screen lyrics', accelerator: HOTKEY, click: toggleStage },
     { label: 'Move lyrics (unlock)', type: 'checkbox', checked: !settings.lyricLock, click: i => applyPatch({ lyricLock: !i.checked }) },
@@ -387,6 +423,9 @@ function applyPatch(patch) {
   if (patch.resetLyricPos) { delete patch.resetLyricPos; patch.lyricBounds = null; if (alive(lyricsWin)) lyricsWin.setBounds(defaultLyricBounds()); }
   if (patch.resetColors) { delete patch.resetColors; patch.lyricColors = { ...DEFAULTS.lyricColors }; }
   settings = { ...settings, ...patch };
+  // picking a style by hand while Shuffle is on holds it until Shuffle's next change
+  if ('lyricStyle' in patch && settings.lyricShuffle !== 'off') shuffleStyle = patch.lyricStyle;
+  if ('lyricShuffle' in patch || 'pinnedStyles' in patch) { if ('lyricShuffle' in patch) shuffleStyle = null; syncShuffle(); }
   if ('enabled' in patch || 'glowOverFullscreen' in patch) updateOverlays();
   if ('glowDisplays' in patch) buildOverlays();
   if ('startup' in patch) setStartup(patch.startup);
@@ -474,13 +513,13 @@ ipcMain.on('artColors', (_e, cols) => { artColors = cols; broadcast(); sendNow()
 app.on('second-instance', () => settings.openFullOnLaunch ? openStage() : openPanel());
 app.whenReady().then(() => {
   log('start', { version: app.getVersion(), packaged: app.isPackaged });
-  load();
+  load(); syncShuffle();
   settings.startup = app.getLoginItemSettings({ path: process.env.PORTABLE_EXECUTABLE_FILE || process.execPath }).openAtLogin;
   buildOverlays();
   buildLyricsWin();
   tray = new Tray(appIcon(16));
   tray.on('click', openPanel);
-  refreshMenu();
+  refreshMenuNow();                                                   // the tray needs its menu right away
   startAudio();
   startMedia();
   // Started with Windows → stay in the tray. Opened by hand → go straight to the main view.

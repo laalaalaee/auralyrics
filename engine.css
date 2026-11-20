@@ -4,7 +4,9 @@
 .gl-root { position: relative; overflow: hidden; color: var(--tx, #fff); font-family: var(--font); --fs: 34px; --beat: 0;
   transition: --c1 1.4s ease, --c2 1.4s ease; user-select: none; container-type: size; }
 .gl-root.paused .gl-stage { opacity: .5 }
-.gl-stage { position: absolute; inset: 0; transition: opacity .6s }
+.gl-stage { position: absolute; inset: 0; transition: opacity .6s; contain: layout }
+/* paint containment too where nothing inside uses backdrop-filter (the native phones do, and full screen lets them overflow) */
+.gl-stage:not(.native) { contain: layout paint }
 .gl-stage .ic { font-style: normal; margin: 0 .12em; display: inline-block; filter: none }
 .sh, .gl-stage:not(.native) { text-shadow: 0 2px 12px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.9) }
 .gl-pill { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); padding: 8px 16px; border-radius: 99px;
@@ -21,28 +23,67 @@
 /* ---------- Classic ---------- */
 .st-stack { -webkit-mask: linear-gradient(transparent, #000 22%, #000 78%, transparent) }
 .st-stack .track { position: absolute; left: 0; right: 0; top: 50%; transition: transform .65s cubic-bezier(.2,.8,.2,1) }
+/* The beat pulse uses the separate `scale` property, outside the transition list: with `transition: all` every
+   --beat change (most frames) restarted a .55s transform transition on the sung line. Leaving .cur still eases the
+   pulse back to 1. The sung line is its own layer, so the per-frame pulse moves pixels instead of repainting text. */
 .st-stack .l { padding: .18em .8em; text-align: center; font-size: var(--fs); font-weight: 700; line-height: 1.18;
-  opacity: .3; transform: scale(.82); filter: blur(1.2px); transition: all .55s cubic-bezier(.2,.8,.2,1) }
+  opacity: .3; transform: scale(.82); filter: blur(1.2px);
+  transition: opacity .55s cubic-bezier(.2,.8,.2,1), transform .55s cubic-bezier(.2,.8,.2,1), filter .55s cubic-bezier(.2,.8,.2,1), scale .55s cubic-bezier(.2,.8,.2,1) }
 .st-stack .l.near { opacity: .55; filter: none }
 .st-stack .l.done .w { color: var(--tx) }
-.st-stack .l.cur { opacity: 1; filter: none; transform: scale(calc(1 + var(--beat) * .035)) }
+.st-stack .l.cur { opacity: 1; filter: none; transform: none; scale: calc(1 + var(--beat) * .035); will-change: transform;
+  transition: opacity .55s cubic-bezier(.2,.8,.2,1), transform .55s cubic-bezier(.2,.8,.2,1), filter .55s cubic-bezier(.2,.8,.2,1) }
 .st-karaoke { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .4em; text-align: center; padding: 0 .8em }
-.st-karaoke .cur { font-size: calc(var(--fs) * 1.1); font-weight: 800; line-height: 1.15; transform: scale(calc(1 + var(--beat) * .03)) }
+.st-karaoke .cur { font-size: calc(var(--fs) * 1.1); font-weight: 800; line-height: 1.15; transform: scale(calc(1 + var(--beat) * .03)); will-change: transform }
 .st-karaoke .cur .w.now { background: linear-gradient(90deg, var(--hl) calc(var(--wp) * 100%), color-mix(in srgb, var(--sec) 38%, transparent) calc(var(--wp) * 100%));
   -webkit-background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--hl) 50%, transparent)) }
 .st-karaoke .cur .w.on:not(.now) { color: var(--hl) }
 .st-karaoke .nx { font-size: calc(var(--fs) * .6); font-weight: 600; opacity: .5 }
+/* Album cover: the cover is the poster. Column when the view is tall, cover-left / text-right when it is wide. */
+.st-poster { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3cqh; padding: 2cqh 4cqw; box-sizing: border-box }
+.st-poster .pcover { position: relative; flex: none; width: min(36cqh, 54cqw); aspect-ratio: 1; border-radius: 1.4%;
+  box-shadow: 0 3cqh 9cqh -2cqh rgba(0,0,0,.8), 0 0 9cqh -1cqh color-mix(in srgb, var(--c1) 65%, transparent);
+  scale: calc(1 + var(--beat) * .03); will-change: scale, transform; animation: poster-float 9s ease-in-out infinite alternate }
+.st-poster .pimg { position: absolute; inset: 0; border-radius: inherit; background: center / cover no-repeat #1b1b22 }
+.st-poster .pimg.none { display: grid; place-items: center; background: linear-gradient(135deg, var(--c1), var(--c2)) }
+.st-poster .pimg.none i { font-style: normal; font-size: 12cqh; opacity: .8 }
+.st-poster .pgloss { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,.24), transparent 36%, transparent 64%, rgba(0,0,0,.2)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.14) }
+.st-poster .ptxt { display: flex; flex-direction: column; gap: .35em; width: 100%; min-width: 0; text-align: center }
+.st-poster .pmeta b { display: block; font-size: calc(var(--fs) * .55); font-weight: 800; letter-spacing: .16em; text-transform: uppercase; opacity: .92 }
+.st-poster .pmeta span { display: block; font-size: calc(var(--fs) * .45); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; opacity: .55; margin-top: .2em }
+.st-poster .cur { margin-top: .5em; font-size: calc(var(--fs) * .95); font-weight: 800; line-height: 1.15 }
+.st-poster .cur .w.now { background: linear-gradient(90deg, var(--hl) calc(var(--wp) * 100%), color-mix(in srgb, var(--sec) 38%, transparent) calc(var(--wp) * 100%));
+  -webkit-background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--hl) 50%, transparent)) }
+.st-poster .cur .w.on:not(.now) { color: var(--hl) }
+.st-poster .nx { font-size: calc(var(--fs) * .55); font-weight: 600; opacity: .5 }
+@container (min-aspect-ratio: 3/2) {
+  .st-poster { flex-direction: row; gap: 6cqw; padding: 0 4cqw }
+  .st-poster .pcover { width: min(78cqh, 34cqw) }
+  .st-poster .ptxt { flex: 1; text-align: left }
+  .st-poster .cur { font-size: calc(var(--fs) * 1.1) }
+}
+@keyframes poster-float { from { transform: translateY(.6cqh) rotate(-.5deg) } to { transform: translateY(-.6cqh) rotate(.5deg) } }
 .st-minimal { display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 .8em }
 .st-minimal .m { font-size: var(--fs); font-weight: 600; transition: opacity .3s, transform .3s }
-.st-minimal .m.out { opacity: 0; transform: translateY(8px) }
+.st-minimal .m.out { opacity: 0; transform: translateY(8px); transition-duration: .16s } /* fully faded before the 170ms text swap */
 
 /* ---------- Kinetic: Ship ---------- */
 .st-ship .persp { position: absolute; inset: 0; perspective: 900px; display: flex; align-items: center; justify-content: center }
+/* .wall scrolls (--y, transitioned), .shift cancels removed rows (no transition), .tilt and .sway drift the wall in 3D.
+   Same motion as the old per-frame sin/cos JS (rotateX 15deg..-3deg over 2*16.65s, rotateY -16deg..16deg over 2*13.19s,
+   ease-in-out-sine), but as compositor animations. Same pivot: all four boxes are the size of the rows. */
 .st-ship .wall { position: absolute; top: 50%; left: 6%; right: 6%; transform-style: preserve-3d;
-  transform: translateY(var(--y, 0)) rotateX(var(--rx, 6deg)) rotateY(var(--ry, 0)); transition: transform .8s cubic-bezier(.2,.8,.2,1) }
+  transform: translateY(var(--y, 0)); transition: transform .8s cubic-bezier(.2,.8,.2,1) }
+.st-ship .shift, .st-ship .tilt, .st-ship .sway { transform-style: preserve-3d }
+.st-ship .tilt { transform: rotateX(6deg); animation: ship-tilt 16.65s cubic-bezier(.37,0,.63,1) infinite alternate }
+.st-ship .sway { animation: ship-sway 13.19s cubic-bezier(.37,0,.63,1) -6.6s infinite alternate }
+@keyframes ship-tilt { from { transform: rotateX(15deg) } to { transform: rotateX(-3deg) } }
+@keyframes ship-sway { from { transform: rotateY(-16deg) } to { transform: rotateY(16deg) } }
 .st-ship .row { font-size: calc(var(--fs) * 1.15); font-weight: 900; text-transform: uppercase; letter-spacing: -.01em; line-height: 1.05;
   padding: .12em 0; transform-style: preserve-3d; transition: opacity .6s }
 .st-ship .row.old { opacity: .32 }
+.st-ship .row.gone { opacity: 0 } /* the oldest row fades out, and is removed when the next line scrolls in */
 .st-ship .w { display: inline-block; opacity: 0; transform: translateZ(320px) translateY(-.4em) rotateX(-40deg);
   transition: opacity .35s, transform .55s cubic-bezier(.2,1.3,.3,1), color .3s !important }
 .st-ship .w.on { opacity: 1; transform: none }
@@ -50,20 +91,25 @@
 /* ---------- Kinetic: Fisheye ---------- */
 .st-fisheye, .st-fisheyeVisual { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05em }
 .st-fisheye .lens, .st-fisheyeVisual .lens { position: absolute; left: 50%; top: 50%; width: calc(var(--fs) * 7); height: calc(var(--fs) * 3.4);
-  transform: translate(-50%, -50%) scale(calc(1 + var(--beat) * .06)); border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--hl) 22%, transparent), transparent); filter: blur(6px) }
+  transform: translate(-50%, -50%) scale(calc(1 + var(--beat) * .06)); border-radius: 50%; will-change: transform;
+  /* the gradient already fades to nothing at its edge; the old blur(6px) on top was re-run on every beat frame */
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--hl) 22%, transparent), color-mix(in srgb, var(--hl) 6%, transparent) 80%, transparent) }
 .st-fisheye .slot, .st-fisheyeVisual .slot { position: relative; font-weight: 800; text-align: center; white-space: nowrap; line-height: 1.05 }
 .st-fisheye .slot.a, .st-fisheye .slot.c, .st-fisheyeVisual .slot.a, .st-fisheyeVisual .slot.c {
   font-size: calc(var(--fs) * .85); opacity: .38; filter: blur(1.5px); transform: scaleY(.7); color: var(--sec) }
 .st-fisheye .slot.b, .st-fisheyeVisual .slot.b { font-size: calc(var(--fs) * 2.1); color: var(--tx);
   transform: scale(1.08, 1.22); text-shadow: 0 0 26px color-mix(in srgb, var(--hl) 60%, transparent), 0 3px 14px rgba(0,0,0,.8) }
+/* two identical keyframes so JS can restart the bulge by swapping classes (no forced reflow); transform/opacity only,
+   the blur(4px) the start frame had was an animated filter on the largest text on screen */
 .st-fisheye .slot.b.pop, .st-fisheyeVisual .slot.b.pop { animation: bulge .38s cubic-bezier(.2,1.5,.4,1) }
-@keyframes bulge { from { transform: scale(.7, .5); opacity: .3; filter: blur(4px) } to { transform: scale(1.08, 1.22); opacity: 1; filter: none } }
+.st-fisheye .slot.b.pop2, .st-fisheyeVisual .slot.b.pop2 { animation: bulge2 .38s cubic-bezier(.2,1.5,.4,1) }
+@keyframes bulge { from { transform: scale(.7, .5); opacity: .2 } to { transform: scale(1.08, 1.22); opacity: 1 } }
+@keyframes bulge2 { from { transform: scale(.7, .5); opacity: .2 } to { transform: scale(1.08, 1.22); opacity: 1 } }
 
 /* ---------- Kinetic: Visual ---------- */
 .st-visual { display: flex; align-items: center; justify-content: center }
 .st-visual .vs { text-align: center; transition: opacity .2s, transform .2s }
-.st-visual .vs.out { opacity: 0; transform: scale(.96) }
+.st-visual .vs.out { opacity: 0; transform: scale(.96); transition-duration: .14s } /* fully faded before the 150ms swap */
 .st-visual .vr { font-size: calc(var(--fs) * 1.35); font-weight: 800; line-height: 1.06; letter-spacing: -.015em }
 .st-visual .ic { font-size: .8em; margin-right: .15em; opacity: .35; transition: opacity .3s, transform .3s; transform: scale(.8) }
 .st-visual .w.on .ic { opacity: 1; transform: scale(1) }
@@ -85,8 +131,9 @@
 
 /* ---------- Motion: SVG scenes ---------- */
 .gl-stage svg.scene { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible }
-.gl-stage svg .ln { transition: opacity .8s, transform .8s; transform-box: fill-box }
-.gl-stage svg .ln.out { opacity: 0 }
+/* one <svg> per line: the outgoing line fades as a whole element, which the compositor can do without repainting */
+.gl-stage svg.ls { transition: opacity .8s }
+.gl-stage svg.ls.out { opacity: 0 }
 .gl-stage svg text.lbl { font-family: var(--font); font-weight: 700; fill: color-mix(in srgb, var(--sec) 40%, transparent); transition: fill .3s; paint-order: stroke; stroke: rgba(0,0,0,.55); stroke-width: 4px }
 .gl-stage svg text.lbl.on { fill: var(--tx) }
 .st-branches .seg { fill: none; stroke: var(--hl); stroke-width: 3.5; stroke-linecap: round; filter: drop-shadow(0 0 6px var(--hl)) }
@@ -98,8 +145,10 @@
 .st-web .ring.on { opacity: 1 }
 .st-web .hub { fill: var(--hl); filter: drop-shadow(0 0 8px var(--hl)) }
 .st-web text.lbl.on { fill: var(--hl) }
-.st-constellation .dust { fill: #fff; opacity: .5; animation: twinkle 4s ease-in-out infinite }
-@keyframes twinkle { 50% { opacity: .1 } }
+/* dust at .5, each of the four sky layers dips to .2 => .1 at the trough, as before */
+.st-constellation .dust { fill: #fff; opacity: .5 }
+.st-constellation svg.sky { animation: twinkle 4s ease-in-out infinite }
+@keyframes twinkle { 50% { opacity: .2 } }
 .st-constellation .cline { stroke: color-mix(in srgb, var(--hl) 80%, #fff); stroke-width: 1.4; opacity: .85 }
 .st-constellation .star { fill: color-mix(in srgb, var(--sec) 40%, transparent); transition: all .4s }
 .st-constellation .star.on { fill: #fff; filter: drop-shadow(0 0 6px var(--hl)) drop-shadow(0 0 14px var(--hl)); r: 6 }
@@ -132,8 +181,9 @@
 .st-messages .hd { display: flex; align-items: center; gap: .6em; padding: .7em .9em; background: rgba(28,28,30,.95); border-bottom: 1px solid #222; color: #fff }
 .st-messages .hd small { display: block; color: #8e8e93; font-size: .75em }
 .st-messages .av { width: 2.2em; height: 2.2em; border-radius: 50%; background: linear-gradient(#a0a6b3, #6c717d); display: grid; place-items: center; font-weight: 700; font-size: .85em }
-.st-messages .th { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: .3em; padding: .7em .8em; overflow: hidden }
-.st-messages .bb { max-width: 78%; padding: .45em .8em; border-radius: 1.1em; line-height: 1.25; font-size: 1.05em; animation: msgin .35s cubic-bezier(.2,1.3,.4,1) both }
+.st-messages .th { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: .3em; padding: .7em .8em; overflow: hidden; contain: layout paint }
+/* fill-mode backwards: the end state is the bubble's own style, so nothing needs to stay pinned once it has landed */
+.st-messages .bb { max-width: 78%; padding: .45em .8em; border-radius: 1.1em; line-height: 1.25; font-size: 1.05em; animation: msgin .35s cubic-bezier(.2,1.3,.4,1) backwards }
 .st-messages .bb.me { align-self: flex-end; background: #0a84ff; color: #fff; transform-origin: right bottom }
 .st-messages .bb.me.tail { border-bottom-right-radius: .3em }
 .st-messages .bb.them { align-self: flex-start; background: #26262a; color: #fff }
@@ -141,12 +191,21 @@
 .st-messages .typing i { width: .45em; height: .45em; border-radius: 50%; background: #8e8e93; animation: dot 1.2s infinite }
 .st-messages .typing i:nth-child(2) { animation-delay: .18s } .st-messages .typing i:nth-child(3) { animation-delay: .36s }
 .st-messages .mcard { align-self: flex-end; width: min(80%, 15em); border-radius: 1.1em; overflow: hidden; background: #1c1c1e; color: #fff;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.06); animation: msgin .4s cubic-bezier(.2,1.3,.4,1) both; transform-origin: right bottom }
+  box-shadow: 0 0 0 1px rgba(255,255,255,.06); animation: msgin .4s cubic-bezier(.2,1.3,.4,1) backwards; transform-origin: right bottom }
 .st-messages .mcard .mm { position: relative; height: 4.6em } .st-messages .mcard .mm svg { width: 100%; height: 100%; display: block }
 .st-messages .mcard .mm span { position: absolute; left: .6em; bottom: .4em; font-size: .7em; font-weight: 600; text-shadow: 0 1px 4px #000 }
 .st-messages .mcard .mb { padding: .5em .8em .6em } .st-messages .mcard .mb b { display: block; font-size: 1.05em; line-height: 1.2 }
 .st-messages .mcard .mb small { display: block; color: #8e8e93; font-size: .75em; margin-top: .2em }
-.st-messages .dl { align-self: flex-end; font-size: .7em; color: #8e8e93; margin-top: -.1em }
+.st-messages .dl { align-self: flex-end; font-size: .7em; color: #8e8e93; margin-top: -.1em; animation: fadein .3s .15s ease backwards }
+/* the oldest bubble lifts and fades away (JS removes it after 450ms) instead of popping out of the thread */
+.st-messages .th > .gone { animation: msgout .4s ease-in both }
+@keyframes msgout { to { opacity: 0; transform: translateY(-.5em) scale(.92) } }
+@keyframes fadein { from { opacity: 0 } }
+/* children must never shrink (map cards were collapsing to a sliver in a crowded thread) */
+.st-messages .th > * { flex: none }
+.st-messages .mcard .mm { flex: none; min-height: 4.6em }
+.full .st-messages .mcard { font-size: 1.25em; width: min(80%, 16em) }
+.full .st-messages .th { gap: .45em }
 @keyframes msgin { from { opacity: 0; transform: translateY(.8em) scale(.85) } to { opacity: 1; transform: none } }
 @keyframes dot { 0%, 60%, 100% { opacity: .3; transform: translateY(0) } 30% { opacity: 1; transform: translateY(-.25em) } }
 
@@ -155,8 +214,12 @@
 .st-money .bal { padding: .2em .2em .7em; border-bottom: 1px solid #1b241d } .st-money .bal small { color: #7d8b80; font-size: .75em; display: block }
 .st-money .bal b { font-size: 1.9em; letter-spacing: -.02em }
 .st-money .list { display: flex; flex-direction: column; gap: .2em; padding-top: .4em }
-.st-money .pay { display: flex; align-items: center; gap: .7em; padding: .55em .2em; border-bottom: 1px solid #141a16; animation: msgin .4s cubic-bezier(.2,1.2,.4,1) both }
+/* fill-mode was `both`, which pinned opacity at 1 forever and silently cancelled the .55 dimming of older payments */
+.st-money .pay { display: flex; align-items: center; gap: .7em; padding: .55em .2em; border-bottom: 1px solid #141a16;
+  animation: msgin .4s cubic-bezier(.2,1.2,.4,1) backwards; transition: opacity .4s }
 .st-money .pay:not(:first-child) { opacity: .55 }
+.st-money .list > .gone { animation: payout .4s ease-in both }
+@keyframes payout { to { opacity: 0; transform: scale(.96) } }
 .st-money .pv { width: 2.3em; height: 2.3em; flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700 }
 .st-money .pm { flex: 1; min-width: 0 } .st-money .pm b { font-size: .9em } .st-money .pm b span { color: #7d8b80; font-weight: 400 }
 .st-money .memo { font-size: 1.05em; font-weight: 600; line-height: 1.2; margin: .1em 0 } .st-money .pm small { color: #5f6b62; font-size: .7em }
@@ -164,15 +227,21 @@
 
 /* map */
 .st-map .phone { background: #1b1f25 }
-.st-map .mapv { position: absolute; inset: 0; width: 100%; height: 100% }
-.st-map .cam { transition: transform 1.1s cubic-bezier(.4,0,.2,1) }
+/* .mapc clips (and is the size container for cq units); .mapv is panned as a whole, composited element: --mx/--my
+   are viewBox units and --u is the viewBox-to-pixel scale of preserveAspectRatio slice, max(W/400, H/300) */
+.st-map .mapc { position: absolute; inset: 0; overflow: hidden; container-type: size }
+.st-map .mapv, .st-map .pinv { position: absolute; inset: 0; width: 100%; height: 100% }
+.st-map .mapv { overflow: visible; --u: max(.25cqw, calc(100cqh / 300)); will-change: transform;
+  translate: calc(var(--mx, 0) * var(--u)) calc(var(--my, 0) * var(--u)); transition: translate 1.1s cubic-bezier(.4,0,.2,1) }
 .st-map .ground { fill: #1c2027 } .st-map .water { fill: #142a40 } .st-map .park { fill: #1d3a2a }
 .st-map .rd { stroke: #2a3039; stroke-width: 3 } .st-map .rd.big { stroke: #39404b; stroke-width: 6 } .st-map .rd.main { stroke: #6b5a33; stroke-width: 9 }
 .st-map .walk { fill: none; stroke: #0a84ff; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2 9; filter: drop-shadow(0 0 4px #0a84ff) }
-.st-map .pin { transition: transform 1.1s cubic-bezier(.4,0,.2,1) } .st-map .pin path { fill: #ff3b30; stroke: #fff; stroke-width: 2 } .st-map .pin circle { fill: #fff }
+.st-map .pin path { fill: #ff3b30; stroke: #fff; stroke-width: 2 } .st-map .pin circle { fill: #fff }
 .st-map .card { position: absolute; left: 6%; right: 6%; bottom: 6%; background: rgba(28,28,30,.92); backdrop-filter: blur(10px); border-radius: .9em; padding: .7em .9em; color: #fff }
 .st-map .card small { color: #8e8e93; font-size: .7em } .st-map .card .ly { font-weight: 700; font-size: 1.1em; line-height: 1.2; margin: .15em 0 }
 .st-map .card .loc { color: #8e8e93; font-size: .75em } .st-map .card.pop { animation: msgin .45s cubic-bezier(.2,1.2,.4,1) }
+.st-map .card.pop2 { animation: msgin2 .45s cubic-bezier(.2,1.2,.4,1) } /* twin of .pop: swapping restarts it without a reflow */
+@keyframes msgin2 { from { opacity: 0; transform: translateY(.8em) scale(.85) } to { opacity: 1; transform: none } }
 
 /* notifications */
 .st-notifications .phone { background: radial-gradient(120% 80% at 30% 0%, #6d4bb8, #2a1d55 55%, #120c24); color: #fff; display: flex; flex-direction: column; align-items: center }
@@ -183,9 +252,17 @@
   background: rgba(255,255,255,.16); backdrop-filter: blur(16px); transition: transform .5s cubic-bezier(.2,.9,.3,1), opacity .5s;
   transform: translateY(calc(var(--k) * 4.3em)); animation: ntin .5s cubic-bezier(.2,1.1,.4,1) both }
 .st-notifications .nt.back { transform: translateY(calc(3 * 4.3em + (var(--k) - 3) * .5em)) scale(calc(1 - (var(--k) - 2) * .05)); opacity: .5 }
+.st-notifications .nt.gone { opacity: 0 } /* the bottom of the pile fades out (opacity transition) before JS drops it */
 .st-notifications .ai { width: 2.1em; height: 2.1em; flex: none; border-radius: .55em; display: grid; place-items: center }
 .st-notifications .nb { flex: 1; min-width: 0 } .st-notifications .nh { display: flex; justify-content: space-between; font-size: .85em } .st-notifications .nh small { opacity: .6 }
 .st-notifications .nl { font-size: 1em; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .st-notifications .wid { align-items: center } .st-notifications .wa { width: 2.6em; height: 2.6em; border-radius: .5em; background: #333 center/cover; flex: none }
 .st-notifications .wid small { font-size: .65em; opacity: .7; display: block } .st-notifications .wid b { display: block } .st-notifications .wid span { font-size: .8em; opacity: .75 }
 @keyframes ntin { from { opacity: 0; transform: translateY(-1.5em) scale(.95) } }
+
+/* Reduced motion (also covers the floating lyrics window, whose page has no rule of its own). The pages' own rules
+   only shorten durations, which turned every infinite loop here (twinkle, typing dots, cursor, 3D drift) into a
+   .01ms flicker, so loops are also capped to one iteration and settle on their resting frame. */
+@media (prefers-reduced-motion: reduce) {
+  .gl-root *, .gl-root *::before, .gl-root *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important }
+}

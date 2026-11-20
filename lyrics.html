@@ -3,21 +3,34 @@
 <style>
   html,body{margin:0;height:100%;overflow:hidden;background:transparent}
   body.unlocked{-webkit-app-region:drag}
-  #frame{position:absolute;inset:0;border-radius:22px;transition:background .3s, box-shadow .3s}
-  body.backdrop #frame{background:rgba(10,10,14,.55);backdrop-filter:blur(18px);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
-  body.unlocked #frame{box-shadow:0 0 0 2px rgba(255,255,255,.35) inset;background:rgba(10,10,14,.35)}
+  /* No backdrop-filter here: this is a transparent window and #frame is the first thing painted, so a CSS blur
+     had nothing to sample (it cannot reach the desktop) yet still cost a blur pass on every lyric frame. */
+  #frame{position:absolute;inset:0;border-radius:22px;transition:background-color .3s}
+  body.backdrop #frame{background:rgba(10,10,14,.55);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+  body.unlocked #frame{background:rgba(10,10,14,.35)}
+  /* the "unlocked" ring fades with opacity on a pseudo-element instead of transitioning box-shadow */
+  #frame::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 2px rgba(255,255,255,.35) inset;opacity:0;transition:opacity .3s}
+  body.unlocked #frame::after{opacity:1}
   #hint{display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);font:12px 'Segoe UI',sans-serif;
     background:rgba(0,0,0,.7);padding:4px 10px;border-radius:99px;color:#ddd;white-space:nowrap;z-index:5}
   body.unlocked #hint{display:block}
   #view{position:absolute;inset:0}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style></head><body>
 <div id="frame"></div>
 <div id="hint">Drag to move · drag edges to resize · lock again from the tray or the Lyrics tab</div>
 <div id="view"></div>
 <script src="engine.js"></script>
 <script>
-const view = new LyricsView(document.getElementById('view'));
-api.onSettings(s => { view.setSettings(s); document.body.classList.toggle('unlocked', !s.lyricLock); document.body.classList.toggle('backdrop', !!s.lyricBackdrop); });
+const view = new LyricsView(document.getElementById('view')), body = document.body;
+// settings arrive on every slider tick elsewhere in the app: only touch classes when the state actually flips
+let unlocked = null, backdrop = null;
+api.onSettings(s => {
+  view.setSettings(s);
+  const u = !s.lyricLock, b = !!s.lyricBackdrop;
+  if (u !== unlocked) { unlocked = u; body.classList.toggle('unlocked', u); }
+  if (b !== backdrop) { backdrop = b; body.classList.toggle('backdrop', b); }
+});
 api.onNow(n => view.setNow(n));
 api.onTime(t => view.setTime(t));
 api.onLyrics(l => view.setLyrics(l));

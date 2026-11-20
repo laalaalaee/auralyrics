@@ -58,13 +58,42 @@
   function wordsHTML(ws, icons) {
     return ws.map((w, k) => { const ic = icons ? iconFor(w.w) : ''; return `<span class="w" data-k="${k}">${esc(w.w)}${ic ? `<i class="ic">${ic}</i>` : ''}</span>`; }).join(' ');
   }
-  function light(box, ws, p) {
+  // useWp: only Karaoke paints with --wp; writing it for every other style was a style recalc per frame for nothing
+  function light(box, ws, p, useWp) {
     const sp = box._sp || (box._sp = box.querySelectorAll('.w'));
     for (let k = 0; k < sp.length; k++) {
       const w = ws[k]; if (!w) continue; const s = sp[k], st = wState(w, p);
       if (s._st !== st) { s._st = st; s.classList.toggle('on', st > 0); s.classList.toggle('now', st === 1); }
-      if (st === 1) s.style.setProperty('--wp', wProg(w, p).toFixed(3));
+      if (useWp && st === 1) { const wp = wProg(w, p).toFixed(3); if (s._wp !== wp) { s._wp = wp; s.style.setProperty('--wp', wp); } }
     }
+  }
+
+  const RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  // FLIP for the phone threads: run mutate(), then slide the children that were already there from their old spot
+  // (one layout read before, one after; only when a line changes, never per frame). Uses `translate` so it stacks
+  // with the bubbles' own transform-based entrance animation instead of cancelling it.
+  function glide(box, mutate) {
+    const olds = [...box.children], tops = olds.map(x => x.offsetTop);
+    // a slide still running (lines < 420ms apart) is carried over, so the new one starts where the bubble really is
+    const rest = olds.map(x => x._ga && x._ga.playState === 'running' ? parseFloat(getComputedStyle(x).translate.split(' ')[1]) || 0 : 0);
+    mutate();
+    if (RM && RM.matches) return;
+    const k = olds.findIndex(x => x.parentNode === box); if (k < 0) return;
+    const d = tops[k] - olds[k].offsetTop;
+    olds.forEach((x, i) => { const off = d + rest[i]; if (x.parentNode !== box || !x.animate || Math.abs(off) < 0.5) return;
+      x._ga = x.animate([{ translate: `0 ${off.toFixed(1)}px` }, { translate: '0 0' }], { duration: 420, easing: 'cubic-bezier(.2,.9,.3,1)' }); });
+  }
+  // Fade an element out (its style's .gone rule) and drop it afterwards, instead of popping it out of the DOM.
+  function leave(x, ms) { if (x._gone) return; x._gone = true; x.classList.add('gone'); setTimeout(() => x.remove(), ms); }
+  const live = box => [...box.children].filter(x => !x._gone);
+  // stroke-dashoffset for a path drawn f of the way; rounded up so an undrawn path never shows a stray round cap
+  function dash(pt, node, f) { const o = Math.ceil(pt.L * (1 - f) * 10) / 10; if (pt.o !== o) { pt.o = o; node.style.strokeDashoffset = o; } }
+  // Length of the cubic M p0 C p1 p2 p3, computed instead of getTotalLength(), which forces a layout on every call.
+  function cubicLen(x0, y0, x1, y1, x2, y2, x3, y3) {
+    let L = 0, px = x0, py = y0;
+    for (let k = 1; k <= 32; k++) { const t = k / 32, u = 1 - t, a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+      const x = a * x0 + b * x1 + c * x2 + d * x3, y = a * y0 + b * y1 + c * y2 + d * y3; L += Math.hypot(x - px, y - py); px = x; py = y; }
+    return L + 1; // a hair long, so the dash always covers the whole curve
   }
 
   // Original demo lyrics so the preview plays with no music on.
@@ -100,32 +129,65 @@
     mount(r, v) { r.innerHTML = '<div class="track"></div>'; const t = r.firstChild;
       t.innerHTML = v.lines().map((l, i) => `<div class="l" data-i="${i}">${l.text ? wordsHTML(v.words(i)) : '♪'}</div>`).join(''); },
     line(c) { const t = c.root.firstChild, els = t.children; if (!els.length) return;
-      [...els].forEach((e, k) => { e.classList.toggle('cur', k === c.i); e.classList.toggle('near', Math.abs(k - c.i) === 1); e.classList.toggle('done', k < c.i); });
-      const tg = els[Math.max(0, c.i)]; t.style.transform = `translateY(${-(tg.offsetTop + tg.offsetHeight / 2)}px)`; },
+      // Measure before touching any class: layout is still clean from the last frame, so this read is free.
+      // (The classes below only change opacity/transform/filter, so the position is the same afterwards.)
+      const tg = els[Math.max(0, c.i)], y = tg.offsetTop + tg.offsetHeight / 2;
+      for (let k = 0; k < els.length; k++) { const e = els[k]; e.classList.toggle('cur', k === c.i); e.classList.toggle('near', Math.abs(k - c.i) === 1); e.classList.toggle('done', k < c.i); }
+      t.style.transform = `translateY(${-y}px)`; },
     frame(c) { const e = c.root.firstChild.children[c.i]; if (e) light(e, c.ws, c.p); }
   });
   def('karaoke', { family: 'Classic', name: 'Karaoke', desc: 'One big line that fills with colour as it is sung.', grad: ['#3a1c4a', '#ffb347'] }, {
     mount(r) { r.innerHTML = '<div class="cur"></div><div class="nx"></div>'; },
     line(c) { const [cu, nx] = c.root.children; cu.innerHTML = c.line && c.line.text ? wordsHTML(c.ws) : '♪'; cu._sp = null; nx.textContent = c.next ? c.next.text : ''; },
-    frame(c) { light(c.root.firstChild, c.ws, c.p); }
+    frame(c) { light(c.root.firstChild, c.ws, c.p, true); }
   });
+  // Fade out, swap the text once it is invisible, fade back in. While the old text is fading it is left alone
+  // (lighting it with the new line's timing used to flicker its words), and a newer line cancels a pending swap.
+  function swapLater(box, html, ms) {
+    const tok = box._tok = (box._tok || 0) + 1; box._pend = true; box.classList.add('out');
+    setTimeout(() => { if (box._tok !== tok) return; box.innerHTML = html; box._sp = null; box._pend = false; box.classList.remove('out'); }, ms);
+  }
   def('minimal', { family: 'Classic', name: 'Minimal', desc: 'A single quiet line at a time.', grad: ['#1b1b22', '#9aa7ff'] }, {
     mount(r) { r.innerHTML = '<div class="m"></div>'; },
-    line(c) { const m = c.root.firstChild; m.classList.add('out'); const ws = c.ws, has = c.line && c.line.text;
-      setTimeout(() => { m.innerHTML = has ? wordsHTML(ws) : '♪'; m._sp = null; m.classList.remove('out'); }, 170); },
-    frame(c) { light(c.root.firstChild, c.ws, c.p); }
+    line(c) { swapLater(c.root.firstChild, c.line && c.line.text ? wordsHTML(c.ws) : '♪', 170); },
+    frame(c) { const m = c.root.firstChild; if (!m._pend) light(m, c.ws, c.p); }
+  });
+
+  // ---- Album cover ----
+  // The cover is the poster: it sits big with the title and artist printed under (or beside) it. Works with no lyrics too.
+  def('poster', { family: 'Album cover', name: 'Poster', desc: 'The album cover as a poster, with the sung line printed beside it.', grad: ['#241638', '#ff8a5c'] }, {
+    mount(r, v) {
+      const n = v.N || {};
+      r.innerHTML = `<div class="pcover"><div class="pimg${n.art ? '' : ' none'}">${n.art ? '' : '<i>♪</i>'}</div><div class="pgloss"></div></div>
+        <div class="ptxt"><div class="pmeta"><b>${esc(n.title || '')}</b><span>${esc(n.artist || '')}</span></div><div class="cur"></div><div class="nx"></div></div>`;
+      if (n.art) r.querySelector('.pimg').style.backgroundImage = `url("${String(n.art).replace(/"/g, '%22')}")`;
+      v.st.cur = r.querySelector('.cur'); v.st.nx = r.querySelector('.nx');
+    },
+    line(c) { const { cur, nx } = c.st; cur.innerHTML = c.line && c.line.text ? wordsHTML(c.ws) : '♪'; cur._sp = null; nx.textContent = c.next ? c.next.text : ''; },
+    frame(c) { light(c.st.cur, c.ws, c.p, true); }
   });
 
   // ---- Kinetic type ----
   def('ship', { family: 'Kinetic type', name: 'Ship', desc: 'Words land one by one on a wall that drifts in 3D.', grad: ['#123a6b', '#ff9966'] }, {
-    mount(r) { r.innerHTML = '<div class="persp"><div class="wall"></div></div>'; },
-    line(c) { const wall = c.root.querySelector('.wall'); if (c.jump) wall.innerHTML = '';
-      wall.querySelectorAll('.row').forEach(x => x.classList.add('old'));
-      const row = el('div', 'row', c.line && c.line.text ? wordsHTML(c.ws) : '<span class="w on">♪</span>'); wall.appendChild(row);
-      while (wall.children.length > 5) wall.firstChild.remove();
-      requestAnimationFrame(() => { wall.style.setProperty('--y', -(row.offsetTop + row.offsetHeight / 2) + 'px'); }); },
-    frame(c) { const wall = c.root.querySelector('.wall'), row = wall.lastChild; if (row) light(row, c.ws, c.p);
-      const t = performance.now(); wall.style.setProperty('--ry', (Math.sin(t / 4200) * 16).toFixed(2) + 'deg'); wall.style.setProperty('--rx', (Math.cos(t / 5300) * 9 + 6).toFixed(2) + 'deg'); }
+    // .wall carries the transitioned scroll (--y); .shift instantly cancels the height of rows that have left, so
+    // removing the oldest row no longer jerks the whole wall up; .tilt/.sway hold the 3D drift as CSS animations
+    // (compositor only) instead of a per-frame JS write that restarted the wall's .8s transition every frame.
+    mount(r, v) { r.innerHTML = '<div class="persp"><div class="wall"><div class="shift"><div class="tilt"><div class="sway"></div></div></div></div></div>';
+      Object.assign(v.st, { wall: r.querySelector('.wall'), shift: r.querySelector('.shift'), rows: r.querySelector('.sway'), acc: 0 }); },
+    line(c) { const s = c.st, box = s.rows;
+      if (c.jump) box.innerHTML = '';
+      else { let acc = s.acc; // the row that faded out last line leaves now, while the new scroll hides the change
+        for (const x of [...box.children]) if (x._gone) { acc += x._h != null ? x._h : x.offsetHeight; x.remove(); }
+        if (acc !== s.acc) { s.acc = acc; s.shift.style.transform = `translateY(${acc}px)`; } }
+      for (const x of box.children) x.classList.add('old');
+      const row = el('div', 'row', c.line && c.line.text ? wordsHTML(c.ws) : '<span class="w on">♪</span>'); box.appendChild(row);
+      const rows = live(box); for (let k = 0; k < rows.length - 5; k++) { rows[k]._gone = true; rows[k].classList.add('gone'); }
+      // measured next frame, when layout is clean again (no forced reflow)
+      // _h is the exact (fractional) layout height, so the .shift compensation is pixel-perfect later on
+      requestAnimationFrame(() => { if (row.parentNode !== box) return; const cs = getComputedStyle(row);
+        row._h = parseFloat(cs.height) + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        s.wall.style.setProperty('--y', -(s.acc + row.offsetTop + row._h / 2).toFixed(1) + 'px'); }); },
+    frame(c) { const row = c.st.rows.lastChild; if (row) light(row, c.ws, c.p); }
   });
   function fisheye(icons) {
     return {
@@ -133,19 +195,20 @@
       frame(c) { const fw = c.v.flat(), g = indexAt(fw, c.p, 't0'); if (g === c.st.g) return; c.st.g = g;
         const [, a, b, cc] = c.root.children, txt = k => { const w = fw[k]; if (!w) return ''; const ic = icons ? iconFor(w.w) : ''; return esc(w.w) + (ic ? ` <i class="ic">${ic}</i>` : ''); };
         a.innerHTML = txt(g - 1); b.innerHTML = g < 0 ? '♪' : txt(g); cc.innerHTML = txt(g + 1);
-        b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+        // restart the bulge by alternating two identical keyframes, not with a forced reflow (void offsetWidth)
+        const k = c.st.pk = !c.st.pk; b.classList.toggle('pop', k); b.classList.toggle('pop2', !k); }
     };
   }
   def('fisheye', { family: 'Kinetic type', name: 'Fisheye', desc: 'A tight stack of three words, bulging through a lens.', grad: ['#4a1a6b', '#ff7a59'] }, fisheye(false));
   def('visual', { family: 'Kinetic type', name: 'Visual', desc: 'A centred stack, with an icon for every word that has one.', grad: ['#0f4d4a', '#e2c86b'] }, {
     mount(r) { r.innerHTML = '<div class="vs"></div>'; },
-    line(c) { const box = c.root.firstChild; box.classList.add('out');
+    line(c) { const box = c.root.firstChild;
       const rows = []; let row = [], len = 0;
       c.ws.forEach((w, k) => { if (row.length && len + w.w.length > 11) { rows.push(row); row = []; len = 0; } row.push(k); len += w.w.length + 1; });
       if (row.length) rows.push(row);
       const html = rows.length ? rows.map(rw => `<div class="vr">${rw.map(k => { const ic = iconFor(c.ws[k].w); return `<span class="w" data-k="${k}">${ic ? `<i class="ic">${ic}</i>` : ''}${esc(c.ws[k].w)}</span>`; }).join(' ')}</div>`).join('') : '<div class="vr"><span class="w on">♪</span></div>';
-      setTimeout(() => { box.innerHTML = html; box._sp = null; box.classList.remove('out'); }, 150); },
-    frame(c) { light(c.root.firstChild, c.ws, c.p); }
+      swapLater(box, html, 150); },
+    frame(c) { const box = c.root.firstChild; if (!box._pend) light(box, c.ws, c.p); }
   });
   def('fisheyeVisual', { family: 'Kinetic type', name: 'Fisheye Visual', desc: 'Fisheye, with icons beside the words that have one.', grad: ['#5a1a3a', '#ffb38a'] }, fisheye(true));
 
@@ -156,8 +219,8 @@
   const CODE_END = ['"</s>);', '"</s>;', '"</s>);', '"</s>);', '"</s>;'];
   function codestyle(icons) {
     return {
-      mount(r) { r.innerHTML = '<div class="ed"><div class="bar"><i></i><i></i><i></i><span>lyrics.js</span></div><div class="code"></div></div>'; },
-      line(c) { const code = c.root.querySelector('.code');
+      mount(r, v) { r.innerHTML = '<div class="ed"><div class="bar"><i></i><i></i><i></i><span>lyrics.js</span></div><div class="code"></div></div>'; v.st.code = r.querySelector('.code'); },
+      line(c) { const code = c.st.code;
         if (c.jump) code.innerHTML = '';
         const prev = code.lastChild; if (prev && prev._done) prev.innerHTML = prev._done;
         const n = c.i + 1, tpl = hash(String(c.i)) % CODE_TPL.length;
@@ -165,7 +228,7 @@
         if (!c.line || !c.line.text) { row.innerHTML = `<b>${n}</b><c>// ♪ instrumental</c>`; row._done = row.innerHTML; }
         code.appendChild(row);
         while (code.children.length > 9) code.firstChild.remove(); },
-      frame(c) { const row = c.root.querySelector('.code').lastChild; if (!row || !c.line || !c.line.text) return;
+      frame(c) { const row = c.st.code.lastChild; if (!row || !c.line || !c.line.text) return;
         let out = '', plain = '';
         for (const w of c.ws) { const st = wState(w, c.p); if (st === 0) break;
           const part = st === 2 ? w.w : w.w.slice(0, Math.ceil(w.w.length * wProg(w, c.p)));
@@ -181,15 +244,17 @@
   def('codestyle', { family: 'Motion scenes', name: 'Codestyle', desc: 'The lyric typed out as code, under a blinking red cursor.', grad: ['#161a2b', '#ff4d4d'] }, codestyle(false));
   def('codestyleVisual', { family: 'Motion scenes', name: 'Codestyle Visual', desc: 'Codestyle, with icons beside the words that have one.', grad: ['#1e1a36', '#ff5c8a'] }, codestyle(true));
 
+  // Every line gets its own <svg> layer. The old line fades by the opacity of its whole <svg> element, which the
+  // compositor can run; fading a <g> inside one shared <svg> repainted the whole scene, glows included, for .8s.
   function newScene(c, viewBox) {
-    const s = c.root.querySelector('svg.scene');
-    s.querySelectorAll('g.ln').forEach(g => { g.classList.add('out'); setTimeout(() => g.remove(), 900); });
-    const g = svg('g', { class: 'ln' }); s.appendChild(g); return g;
+    c.root.querySelectorAll('svg.ls:not(.out)').forEach(s => { s.classList.add('out'); setTimeout(() => s.remove(), 900); });
+    const s = svg('svg', { class: 'scene ls', viewBox, preserveAspectRatio: 'xMidYMid meet' }), g = svg('g', { class: 'ln' });
+    s.appendChild(g); c.root.appendChild(s); return g;
   }
   const fsU = c => 30 * c.v.sz(); // svg text size in viewBox units
   def('branches', { family: 'Motion scenes', name: 'Branches', desc: 'A line draws itself, and each word lights a node on it.', grad: ['#0e3a2a', '#7be08a'] }, {
-    mount(r) { r.innerHTML = '<svg class="scene" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid meet"></svg>'; },
-    line(c) { const g = newScene(c); c.st.parts = []; if (!c.ws.length) return;
+    mount(r) { r.innerHTML = ''; },
+    line(c) { const g = newScene(c, '0 0 1000 400'); c.st.parts = []; if (!c.ws.length) return;
       const R = rng(hash(c.line.text + c.i)), n = c.ws.length, pts = [];
       for (let k = 0; k <= n; k++) pts.push([60 + (880 * k) / n, 200 + (k === 0 ? 0 : (R() - 0.5) * 190)]);
       for (let k = 1; k <= n; k++) {
@@ -199,16 +264,16 @@
         const node = svg('circle', { cx: x1, cy: y1, r: 7, class: 'node' }); g.appendChild(node);
         const up = k % 2 ? -1 : 1, tx = svg('text', { x: x1, y: y1 + up * (fsU(c) * 0.95) + (up > 0 ? fsU(c) * 0.35 : 0), class: 'lbl', 'text-anchor': 'middle', 'font-size': fsU(c) });
         tx.textContent = c.ws[k - 1].w; g.appendChild(tx);
-        const L = seg.getTotalLength(); seg.style.strokeDasharray = L; seg.style.strokeDashoffset = L;
-        c.st.parts.push({ seg, L, node, tx });
+        const L = cubicLen(x0, y0, mx, y0, mx, y1, x1, y1); seg.style.strokeDasharray = L; seg.style.strokeDashoffset = L;
+        c.st.parts.push({ seg, L, o: L, node, tx });
       }
       g.prepend(svg('circle', { cx: pts[0][0], cy: pts[0][1], r: 5, class: 'node on' })); },
     frame(c) { (c.st.parts || []).forEach((pt, k) => { const w = c.ws[k]; if (!w) return; const f = wProg(w, c.p);
-      pt.seg.style.strokeDashoffset = pt.L * (1 - f); const on = f > 0.7; if (pt.on !== on) { pt.on = on; pt.node.classList.toggle('on', on); pt.tx.classList.toggle('on', on); } }); }
+      dash(pt, pt.seg, f); const on = f > 0.7; if (pt.on !== on) { pt.on = on; pt.node.classList.toggle('on', on); pt.tx.classList.toggle('on', on); } }); }
   });
   def('web', { family: 'Motion scenes', name: 'Web', desc: 'Each line spun into a spider\'s web, a strand for every word.', grad: ['#3d1e0a', '#ff9a3c'] }, {
-    mount(r) { r.innerHTML = '<svg class="scene" viewBox="-500 -200 1000 400" preserveAspectRatio="xMidYMid meet"></svg>'; },
-    line(c) { const g = newScene(c); c.st.parts = []; c.st.rings = []; if (!c.ws.length) return;
+    mount(r) { r.innerHTML = ''; },
+    line(c) { const g = newScene(c, '-500 -200 1000 400'); c.st.parts = []; c.st.rings = []; if (!c.ws.length) return;
       const R = rng(hash(c.line.text + c.i)), n = c.ws.length, ends = [];
       for (let k = 0; k < n; k++) {
         const a = -Math.PI / 2 + (k / n) * Math.PI * 2 + (R() - 0.5) * (Math.PI / n) * 0.6, len = 0.75 + R() * 0.25;
@@ -222,18 +287,22 @@
         const L = Math.hypot(x, y); st.style.strokeDasharray = L; st.style.strokeDashoffset = L;
         const cos = Math.cos(a), tx = svg('text', { x: x + cos * 14, y: y + Math.sin(a) * 18 + fsU(c) * 0.3, class: 'lbl', 'font-size': fsU(c) * 0.9,
           'text-anchor': Math.abs(cos) < 0.3 ? 'middle' : cos > 0 ? 'start' : 'end' });
-        tx.textContent = c.ws[k].w; g.appendChild(tx); c.st.parts.push({ st, L, tx });
+        tx.textContent = c.ws[k].w; g.appendChild(tx); c.st.parts.push({ st, L, o: L, tx });
       });
       g.appendChild(svg('circle', { cx: 0, cy: 0, r: 6, class: 'hub' })); },
     frame(c) { (c.st.parts || []).forEach((pt, k) => { const w = c.ws[k]; if (!w) return; const f = wProg(w, c.p);
-        pt.st.style.strokeDashoffset = pt.L * (1 - f); const on = f > 0.6; if (pt.on !== on) { pt.on = on; pt.tx.classList.toggle('on', on); } });
+        dash(pt, pt.st, f); const on = f > 0.6; if (pt.on !== on) { pt.on = on; pt.tx.classList.toggle('on', on); } });
       (c.st.rings || []).forEach(r => { const w = c.ws[r.k]; const on = w && wState(w, c.p) === 2; if (on !== r.on) { r.on = on; r.ln.classList.toggle('on', on); } }); }
   });
   def('constellation', { family: 'Motion scenes', name: 'Constellation', desc: 'Each line traced as a constellation, star by star.', grad: ['#0b1030', '#8f7bff'] }, {
-    mount(r) { r.innerHTML = '<svg class="scene" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid meet"><g class="sky"></g></svg>';
-      const sky = r.querySelector('.sky'), R = rng(7);
-      for (let k = 0; k < 160; k++) sky.appendChild(svg('circle', { cx: R() * 1800 - 400, cy: R() * 900 - 250, r: R() * 1.4 + 0.3, class: 'dust', style: `animation-delay:${(R() * 4).toFixed(2)}s` })); },
-    line(c) { const g = newScene(c); c.st.parts = []; if (!c.ws.length) return;
+    // The 160 dust stars twinkle in four groups, each its own <svg> whose opacity the compositor animates.
+    // (160 separate opacity animations on SVG circles repainted the whole sky on every frame, forever.)
+    mount(r) { r.innerHTML = ''; const R = rng(7), sky = [];
+      for (let k = 0; k < 4; k++) { const s = svg('svg', { class: 'scene sky', viewBox: '0 0 1000 400', preserveAspectRatio: 'xMidYMid meet' });
+        s.style.animationDelay = -k + 's'; r.appendChild(s); sky.push(s); }
+      for (let k = 0; k < 160; k++) { const cx = R() * 1800 - 400, cy = R() * 900 - 250, rr = R() * 1.4 + 0.3, grp = Math.min(3, Math.floor(R() * 4));
+        sky[grp].appendChild(svg('circle', { cx, cy, r: rr, class: 'dust' })); } },
+    line(c) { const g = newScene(c, '0 0 1000 400'); c.st.parts = []; if (!c.ws.length) return;
       const R = rng(hash(c.line.text + c.i)), n = c.ws.length, pts = [];
       for (let k = 0; k < n; k++) pts.push([110 + (780 * (k + 0.5)) / n + (R() - 0.5) * 50, 80 + R() * 240]);
       pts.forEach(([x, y], k) => {
@@ -241,49 +310,66 @@
         if (k) { const [px, py] = pts[k - 1]; seg = svg('line', { x1: px, y1: py, x2: x, y2: y, class: 'cline' }); g.appendChild(seg); L = Math.hypot(x - px, y - py); seg.style.strokeDasharray = L; seg.style.strokeDashoffset = L; }
         const star = svg('circle', { cx: x, cy: y, r: 4, class: 'star' }); g.appendChild(star);
         const up = y > 200 ? -1 : 1, tx = svg('text', { x, y: y + up * 22 + (up > 0 ? fsU(c) * 0.6 : 0), class: 'lbl', 'text-anchor': 'middle', 'font-size': fsU(c) * 0.85 });
-        tx.textContent = c.ws[k].w; g.appendChild(tx); c.st.parts.push({ seg, L, star, tx });
+        tx.textContent = c.ws[k].w; g.appendChild(tx); c.st.parts.push({ seg, L, o: L, star, tx });
       }); },
     frame(c) { (c.st.parts || []).forEach((pt, k) => { const w = c.ws[k]; if (!w) return; const f = wProg(w, c.p);
-      if (pt.seg) pt.seg.style.strokeDashoffset = pt.L * (1 - f);
+      if (pt.seg) dash(pt, pt.seg, f);
       const on = c.p >= w.t0; if (pt.on !== on) { pt.on = on; pt.star.classList.toggle('on', on); pt.tx.classList.toggle('on', on); } }); }
   });
 
   // ---- Native Design (iPhone screens, keep their own colours) ----
   const initials = s => (s || '♪').split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase();
   def('messages', { family: 'Native Design', native: true, name: 'Native Design', desc: 'The song as a message thread, a bubble for every line.', grad: ['#1d4fa8', '#7fb6ff'] }, {
-    mount(r, v) { r.innerHTML = `<div class="phone"><div class="hd"><div class="av">${esc(initials(v.N.artist))}</div><div><b>${esc(v.N.artist || 'Glowrim')}</b><small>iMessage</small></div></div><div class="th"></div></div>`; },
-    line(c) { const th = c.root.querySelector('.th'); if (c.jump) th.innerHTML = '';
-      th.querySelector('.typing')?.remove(); th.querySelector('.dl')?.remove();
-      th.querySelectorAll('.bb').forEach(b => b.classList.remove('tail'));
-      if (c.line && c.line.text) {
-        // Mix: most lines are bubbles; some arrive as a shared Maps location card.
-        const R = rng(hash(c.line.text + c.i)), prev = th.lastElementChild;
-        const asMap = c.i > 0 && c.line.text.length > 14 && R() < 0.24 && !(prev && prev.classList.contains('mcard'));
-        const b = asMap
-          ? el('div', 'mcard lit', `<div class="mm">${miniMap(R)}<span>⊙ Maps</span></div><div class="mb"><b>${wordsHTML(c.ws)}</b><small>⤴ ${PLACES[Math.floor(R() * PLACES.length)]}</small></div>`)
-          : el('div', 'bb me tail lit', wordsHTML(c.ws));
-        th.appendChild(b); th.appendChild(el('div', 'dl', 'Delivered'));
-      }
-      while (th.children.length > 8) th.firstChild.remove(); },
-    frame(c) { const th = c.root.querySelector('.th'), mine = th.querySelectorAll('.lit'), b = mine[mine.length - 1]; if (b) light(b, c.ws, c.p);
+    mount(r, v) { r.innerHTML = `<div class="phone"><div class="hd"><div class="av">${esc(initials(v.N.artist))}</div><div><b>${esc(v.N.artist || 'Glowrim')}</b><small>iMessage</small></div></div><div class="th"></div></div>`;
+      v.st.th = r.querySelector('.th'); },
+    // New bubbles pop in (msgin) while the thread above slides up to make room (glide) instead of jumping;
+    // the oldest bubble fades and lifts away (leave) instead of vanishing.
+    line(c) { const s = c.st, th = s.th; if (c.jump) { th.innerHTML = ''; s.typing = s.cur = null; }
+      glide(th, () => {
+        if (s.typing) { s.typing.remove(); s.typing = null; }
+        th.querySelector('.dl')?.remove();
+        th.querySelectorAll('.bb.tail').forEach(b => b.classList.remove('tail'));
+        s.cur = null;
+        if (c.line && c.line.text) {
+          // Mix: most lines are bubbles; some arrive as a shared Maps location card.
+          const R = rng(hash(c.line.text + c.i)), prev = th.lastElementChild;
+          const asMap = c.i > 0 && c.line.text.length > 14 && R() < 0.24 && !(prev && prev.classList.contains('mcard'));
+          const b = asMap
+            ? el('div', 'mcard lit', `<div class="mm">${miniMap(R)}<span>⊙ Maps</span></div><div class="mb"><b>${wordsHTML(c.ws)}</b><small>⤴ ${PLACES[Math.floor(R() * PLACES.length)]}</small></div>`)
+            : el('div', 'bb me tail lit', wordsHTML(c.ws));
+          th.appendChild(b); th.appendChild(el('div', 'dl', 'Delivered')); s.cur = b;
+        }
+      });
+      const kids = live(th); for (let k = 0; k < kids.length - 8; k++) leave(kids[k], 450); },
+    frame(c) { const s = c.st, th = s.th; if (s.cur) light(s.cur, c.ws, c.p);
       const gap = c.next ? c.next.t - c.p : 0, since = c.line ? c.p - c.line.t : c.p;
-      const want = c.playing && c.next && gap > 900 && since > 1800 && c.next.t - (c.line ? c.line.t : 0) > 3500, has = th.querySelector('.typing');
-      if (want && !has) th.appendChild(el('div', 'bb them typing', '<i></i><i></i><i></i>')); if (!want && has) has.remove(); }
+      const want = c.playing && c.next && gap > 900 && since > 1800 && c.next.t - (c.line ? c.line.t : 0) > 3500;
+      if (want && !s.typing) glide(th, () => th.appendChild(s.typing = el('div', 'bb them typing', '<i></i><i></i><i></i>')));
+      else if (!want && s.typing) { const t = s.typing; s.typing = null; glide(th, () => t.remove()); } }
   });
   def('money', { family: 'Native Design', native: true, name: 'Native Design Money', desc: 'The song as a run of payments, one for every line.', grad: ['#0d3b1e', '#9be15d'] }, {
-    mount(r) { r.innerHTML = '<div class="phone"><div class="bal"><small>Balance</small><b>$0.00</b></div><div class="list"></div></div>'; this.bal = 0; },
-    line(c) { const list = c.root.querySelector('.list'); if (c.jump) list.innerHTML = '';
+    mount(r, v) { r.innerHTML = '<div class="phone"><div class="bal"><small>Balance</small><b>$0.00</b></div><div class="list"></div></div>';
+      v.st.list = r.querySelector('.list'); v.st.balEl = r.querySelector('.bal b'); },
+    line(c) { const s = c.st, list = s.list; if (c.jump) { list.innerHTML = ''; s.memo = null; }
       if (!c.line || !c.line.text) return;
       const R = rng(hash(c.line.text + c.i)), inc = R() > 0.35, amt = (Math.round(R() * 18000) / 100 + 4).toFixed(2), who = PEOPLE[Math.floor(R() * PEOPLE.length)];
       const hue = Math.floor(R() * 360);
       const row = el('div', 'pay', `<div class="pv" style="background:hsl(${hue} 55% 42%)">${who[0]}</div><div class="pm"><b>${inc ? who : 'You'} <span>${inc ? 'sent you' : 'paid ' + who}</span></b><div class="memo">${wordsHTML(c.ws)}</div><small>Just now</small></div><div class="amt ${inc ? 'in' : ''}">${inc ? '+' : '−'}$${amt}</div>`);
-      list.prepend(row); while (list.children.length > 5) list.lastChild.remove();
-      c.st.bal = (c.st.bal || 1240) + (inc ? 1 : -1) * +amt; c.root.querySelector('.bal b').textContent = '$' + c.st.bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
-    frame(c) { const m = c.root.querySelector('.pay .memo'); if (m) light(m, c.ws, c.p); }
+      // the older payments slide down to make room, and the oldest fades out at the bottom
+      glide(list, () => list.prepend(row)); s.memo = row.querySelector('.memo');
+      const rows = live(list); for (let k = 5; k < rows.length; k++) leave(rows[k], 450);
+      s.bal = (s.bal || 1240) + (inc ? 1 : -1) * +amt; s.balEl.textContent = '$' + s.bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
+    frame(c) { if (c.st.memo) light(c.st.memo, c.ws, c.p); }
   });
   def('map', { family: 'Native Design', native: true, name: 'Native Design Map', desc: 'A walk across San Francisco, with a pin for every line.', grad: ['#1e2c3e', '#d8b97a'] }, {
     mount(r, v) {
-      r.innerHTML = '<div class="phone"><svg class="mapv" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><g class="cam"><g class="land"></g><polyline class="walk" points=""/><g class="pin"><path d="M0,-26 C-11,-26 -16,-17 -16,-11 C-16,0 0,10 0,10 C0,10 16,0 16,-11 C16,-17 11,-26 0,-26Z"/><circle cy="-12" r="5"/></g></g></svg><div class="card"><small>📍 Maps</small><div class="ly"></div><span class="loc"></span></div></div>';
+      // The camera pans by translating the whole map <svg> (a composited layer, see .mapv in engine.css), not a <g>
+      // inside it, which repainted every street on every frame of the 1.1s pan. The pin sits in its own static <svg>
+      // at the spot the camera always centres on, exactly where the old in-map pin ended up.
+      r.innerHTML = '<div class="phone"><div class="mapc"><svg class="mapv" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><g class="land"></g><polyline class="walk" points=""/></svg>' +
+        '<svg class="pinv" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"><g class="pin" transform="translate(200,170)"><path d="M0,-26 C-11,-26 -16,-17 -16,-11 C-16,0 0,10 0,10 C0,10 16,0 16,-11 C16,-17 11,-26 0,-26Z"/><circle cy="-12" r="5"/></g></svg></div>' +
+        '<div class="card"><small>📍 Maps</small><div class="ly"></div><span class="loc"></span></div></div>';
+      Object.assign(v.st, { mapv: r.querySelector('.mapv'), walk: r.querySelector('.walk'), card: r.querySelector('.card'), ly: r.querySelector('.card .ly'), loc: r.querySelector('.card .loc') });
       const land = r.querySelector('.land'), R = rng(hash(v.N.title || 'sf'));
       land.appendChild(svg('rect', { x: -2000, y: -2000, width: 4000, height: 4000, class: 'ground' }));
       land.appendChild(svg('path', { d: 'M-2000,900 C-600,700 400,1200 2000,800 L2000,2000 L-2000,2000Z', class: 'water' }));
@@ -291,41 +377,43 @@
       for (let k = -30; k <= 30; k++) { land.appendChild(svg('line', { x1: k * 70, y1: -2000, x2: k * 70 + 300, y2: 2000, class: k % 5 ? 'rd' : 'rd big' }));
         land.appendChild(svg('line', { x1: -2000, y1: k * 60, x2: 2000, y2: k * 60 - 200, class: k % 6 ? 'rd' : 'rd big' })); }
       land.appendChild(svg('line', { x1: -2000, y1: 1400, x2: 2000, y2: -1200, class: 'rd main' }));
-      this.walk = null;
     },
     line(c) { const R = rng(hash(c.line ? c.line.text + c.i : 'x' + c.i));
       const st = c.st; if (!st.pts || c.jump) st.pts = [[0, 0]];
       if (c.line && c.line.text) { const [x, y] = st.pts[st.pts.length - 1]; st.pts.push([x + (R() - 0.3) * 160, y + (R() - 0.5) * 140]); }
       while (st.pts.length > 12) st.pts.shift();
       const [px, py] = st.pts[st.pts.length - 1];
-      c.root.querySelector('.walk').setAttribute('points', st.pts.map(p => p.join(',')).join(' '));
-      c.root.querySelector('.pin').setAttribute('transform', `translate(${px},${py})`);
-      c.root.querySelector('.cam').style.transform = `translate(${200 - px}px, ${170 - py}px)`;
-      const card = c.root.querySelector('.card'); card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
-      const ly = card.querySelector('.ly'); ly.innerHTML = c.line && c.line.text ? wordsHTML(c.ws) : '♪'; ly._sp = null;
-      card.querySelector('.loc').textContent = '⤴ ' + SF[hash(String(c.i)) % SF.length] + ', San Francisco'; },
-    frame(c) { light(c.root.querySelector('.ly'), c.ws, c.p); }
+      st.walk.setAttribute('points', st.pts.map(p => p.join(',')).join(' '));
+      // camera offset in viewBox units; engine.css turns it into pixels for the current size
+      st.mapv.style.setProperty('--mx', (200 - px).toFixed(2)); st.mapv.style.setProperty('--my', (170 - py).toFixed(2));
+      // restart the card's pop by alternating two identical keyframes, not with a forced reflow
+      const k = st.pk = !st.pk; st.card.classList.toggle('pop', k); st.card.classList.toggle('pop2', !k);
+      st.ly.innerHTML = c.line && c.line.text ? wordsHTML(c.ws) : '♪'; st.ly._sp = null;
+      st.loc.textContent = '⤴ ' + SF[hash(String(c.i)) % SF.length] + ', San Francisco'; },
+    frame(c) { light(c.st.ly, c.ws, c.p); }
   });
   def('notifications', { family: 'Native Design', native: true, name: 'Native Design Notifications', desc: 'Lines arrive as lock-screen notifications, stacks and widgets.', grad: ['#2c1a5c', '#f0a56b'] }, {
-    mount(r) { r.innerHTML = '<div class="phone"><div class="clk"><small></small><b></b></div><div class="stk"></div></div>'; },
-    line(c) { const stk = c.root.querySelector('.stk'); if (c.jump) stk.innerHTML = '';
+    mount(r, v) { r.innerHTML = '<div class="phone"><div class="clk"><small></small><b></b></div><div class="stk"></div></div>'; v.st.stk = r.querySelector('.stk'); },
+    line(c) { const s = c.st, stk = s.stk; if (c.jump) { stk.innerHTML = ''; s.nl = null; }
       if (!c.line || !c.line.text) return;
       if (c.i > 0 && c.i % 7 === 0 && c.v.N.title) {
         stk.prepend(el('div', 'nt wid', `<div class="wa" style="background-image:url('${c.v.N.art || ''}')"></div><div><small>NOW PLAYING</small><b>${esc(c.v.N.title)}</b><span>${esc(c.v.N.artist)}</span></div>`));
       }
       const R = rng(hash(c.line.text + c.i)), [app, ic, col] = APPS[Math.floor(R() * APPS.length)];
       const who = app === 'Messages' || app === 'Mail' ? PEOPLE[Math.floor(R() * PEOPLE.length)] : app === 'Calendar' ? 'Up next' : app;
-      stk.prepend(el('div', 'nt', `<div class="ai" style="background:${col}">${ic}</div><div class="nb"><div class="nh"><b>${who}</b><small>now</small></div><div class="nl">${wordsHTML(c.ws)}</div></div>`));
-      [...stk.children].forEach((n, k) => { n.style.setProperty('--k', k); n.classList.toggle('back', k >= 3); });
-      while (stk.children.length > 6) stk.lastChild.remove(); },
-    frame(c) { const nl = c.root.querySelector('.nt .nl'); if (nl) light(nl, c.ws, c.p);
+      const nt = el('div', 'nt', `<div class="ai" style="background:${col}">${ic}</div><div class="nb"><div class="nh"><b>${who}</b><small>now</small></div><div class="nl">${wordsHTML(c.ws)}</div></div>`);
+      stk.prepend(nt); s.nl = nt.querySelector('.nl');
+      const ns = live(stk);
+      ns.forEach((n, k) => { n.style.setProperty('--k', k); n.classList.toggle('back', k >= 3); });
+      for (let k = 6; k < ns.length; k++) leave(ns[k], 520); }, // the bottom of the pile fades away (.nt.gone)
+    frame(c) { if (c.st.nl) light(c.st.nl, c.ws, c.p);
       if (!c.st.ct || performance.now() - c.st.ct > 5000) { c.st.ct = performance.now(); const d = new Date();
         c.root.querySelector('.clk b').textContent = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M/i, '');
         c.root.querySelector('.clk small').textContent = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }); } }
   });
 
   const ORDER = ['ship', 'fisheye', 'visual', 'fisheyeVisual', 'codestyle', 'codestyleVisual', 'branches', 'web', 'constellation',
-    'messages', 'money', 'map', 'notifications', 'stack', 'karaoke', 'minimal'];
+    'messages', 'money', 'map', 'notifications', 'stack', 'karaoke', 'minimal', 'poster'];
 
   // ================= view =================
   class LyricsView {
@@ -337,7 +425,8 @@
       this.demoStart = performance.now();
       const loop = () => { try { this.frame(); } catch (e) { console.error(e); } this.raf = requestAnimationFrame(loop); };
       this.raf = requestAnimationFrame(loop);
-      if (window.ResizeObserver) new ResizeObserver(() => this.idx = -2).observe(root);
+      // re-layout once the resize settles, not on every pixel of a window drag
+      if (window.ResizeObserver) new ResizeObserver(() => { clearTimeout(this._rz); this._rz = setTimeout(() => this.idx = -2, 120); }).observe(root);
     }
     // --- inputs ---
     setSettings(S) {
@@ -350,7 +439,7 @@
       r.setProperty('--sec', match ? c2 : col.sec || '#ffffff');
       r.setProperty('--fs', (34 * (S.lyricScale || 100) / 100 * (this.opt.scale || 1)).toFixed(1) + 'px');
       r.setProperty('--font', `'${S.lyricFont}', 'Segoe UI Variable Display', 'Segoe UI', sans-serif`);
-      const st = this.opt.style || S.lyricStyle;
+      const st = this.opt.style || S.activeStyle || S.lyricStyle;   // activeStyle = what Shuffle picked right now
       if (st !== this.styleKey || (prev && (prev.lyricScale !== S.lyricScale || prev.lyricFont !== S.lyricFont))) this.useStyle(st);
       this.pill();
     }
@@ -398,7 +487,11 @@
           this.impl.frame && this.impl.frame(c);
         }
       }
-      this.beat *= 0.9; this.root.style.setProperty('--beat', this.beat.toFixed(3));
+      // --beat is inherited by the whole lyric tree, so every write restyles it: only write real changes.
+      const now = performance.now(), dt = Math.min(100, now - (this._bt || now)); this._bt = now;
+      this.beat *= Math.pow(0.9, dt / 16.7);                            // same decay at 60, 144 or 180 Hz
+      const b = this.beat < 0.004 ? '0' : this.beat.toFixed(2);
+      if (b !== this._bs) { this._bs = b; this.root.style.setProperty('--beat', b); }
     }
   }
   window.LyricsView = LyricsView;
