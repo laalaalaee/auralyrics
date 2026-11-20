@@ -5,14 +5,28 @@
   "description": "Synced full-screen lyrics and an ambient screen-edge glow for Windows, driven by whatever is playing in Spotify, Apple Music or your browser.",
   "main": "main.js",
   "keywords": [
-    "synced lyrics", "lyrics", "lyrics app", "full screen lyrics", "music visualizer", "ambient glow", "screen glow",
-    "spotify lyrics", "apple music lyrics", "youtube music lyrics", "karaoke", "lock screen lyrics", "windows", "electron", "lrclib"
+    "synced lyrics",
+    "lyrics",
+    "lyrics app",
+    "full screen lyrics",
+    "music visualizer",
+    "ambient glow",
+    "screen glow",
+    "spotify lyrics",
+    "apple music lyrics",
+    "youtube music lyrics",
+    "karaoke",
+    "lock screen lyrics",
+    "windows",
+    "electron",
+    "lrclib"
   ],
   "license": "UNLICENSED",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "test": "node --test"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -22,9 +36,27 @@
     "appId": "app.auralyrics",
     "productName": "Auralyrics",
     "copyright": "Copyright © 2026 Auralyrics. All rights reserved.",
-    "files": ["**/*", "!dist/**", "!docs/**", "!site/**", "!dev-gallery.html", "!dev-glow.html", "!*.md"],
-    "asarUnpack": ["media.ps1"],
-    "win": { "target": ["nsis", "portable"], "signAndEditExecutable": false },
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!docs/**",
+      "!site/**",
+      "!tests/**",
+      "!.github/**",
+      "!dev-gallery.html",
+      "!dev-glow.html",
+      "!*.md"
+    ],
+    "asarUnpack": [
+      "media.ps1"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "signAndEditExecutable": false
+    },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
@@ -34,6 +66,8 @@
       "shortcutName": "Auralyrics",
       "artifactName": "Auralyrics-Setup-${version}.exe"
     },
-    "portable": { "artifactName": "Auralyrics-${version}-portable.exe" }
+    "portable": {
+      "artifactName": "Auralyrics-${version}-portable.exe"
+    }
   }
 }

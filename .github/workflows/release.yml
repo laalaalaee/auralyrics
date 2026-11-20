@@ -1,0 +1,94 @@
+name: Release
+
+# Push a version tag (git tag v2.1.0 && git push origin v2.1.0) and this builds the Windows installer and
+# portable app, then publishes them, with checksums, as a GitHub Release.
+# Run it by hand (Actions -> Release -> Run workflow) to do a dry run: it builds and uploads the files as a
+# workflow artifact only, without creating a release.
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and publish
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Read version
+        id: ver
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Tag must match package.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          [ "${GITHUB_REF_NAME}" = "v${{ steps.ver.outputs.version }}" ] || { echo "Tag ${GITHUB_REF_NAME} does not match package.json version ${{ steps.ver.outputs.version }}"; exit 1; }
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Build
+        run: npm run dist
+        env:
+          # Code signing: add CSC_LINK (base64 .pfx) and CSC_KEY_PASSWORD as repository secrets and
+          # electron-builder signs both files. Without them the build is unsigned.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+
+      - name: Checksums
+        shell: pwsh
+        working-directory: dist
+        run: |
+          $v = '${{ steps.ver.outputs.version }}'
+          Get-FileHash "Auralyrics-Setup-$v.exe", "Auralyrics-$v-portable.exe" -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content SHA256SUMS.txt -Encoding ascii
+          Get-Content SHA256SUMS.txt
+
+      - name: Release notes from CHANGELOG.md
+        shell: bash
+        run: |
+          v='${{ steps.ver.outputs.version }}'
+          awk -v v="$v" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > release-notes.md
+          [ -s release-notes.md ] || echo "See CHANGELOG.md for details." > release-notes.md
+          cat release-notes.md
+
+      - name: Upload build (dry run)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Auralyrics-${{ steps.ver.outputs.version }}
+          path: |
+            dist/Auralyrics-Setup-${{ steps.ver.outputs.version }}.exe
+            dist/Auralyrics-${{ steps.ver.outputs.version }}-portable.exe
+            dist/SHA256SUMS.txt
+          retention-days: 7
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v='${{ steps.ver.outputs.version }}'
+          files=("dist/Auralyrics-Setup-$v.exe" "dist/Auralyrics-$v-portable.exe" "dist/SHA256SUMS.txt")
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${files[@]}" --title "Auralyrics $v" --notes-file release-notes.md --verify-tag
+          fi

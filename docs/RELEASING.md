@@ -15,3 +15,19 @@
    ```
 
 Builds are not code-signed yet. Once there is a certificate, set `CSC_LINK` / `CSC_KEY_PASSWORD` before step 3 and electron-builder signs both files.
+
+## Automatic releases (GitHub Actions)
+
+Steps 3–5 above also run on their own. After steps 1–2, tag and push:
+
+```powershell
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+`.github/workflows/release.yml` checks the tag matches `package.json`, runs the tests, builds on a Windows runner and publishes the
+release with `SHA256SUMS.txt` and notes taken from the matching `CHANGELOG.md` section.
+Actions → Release → *Run workflow* does a dry run that only uploads the build as a 7-day workflow artifact.
+`ci.yml` runs syntax checks, the unit tests and a version/changelog check on every push and pull request.
+
+To sign the builds, add `CSC_LINK` (base64 `.pfx`) and `CSC_KEY_PASSWORD` as repository secrets.
