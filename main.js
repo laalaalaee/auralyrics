@@ -25,14 +25,15 @@ const STYLE_NAMES = {
   branches: 'Branches', web: 'Web', constellation: 'Constellation', messages: 'Native Design', money: 'Native Design Money', map: 'Native Design Map',
   notifications: 'Native Design Notifications', stack: 'Stack', karaoke: 'Karaoke', minimal: 'Minimal', poster: 'Poster'
 };
-const GLOW_STYLES = [['rim', 'Rim'], ['corners', 'Corners'], ['orbit', 'Orbit'], ['twin', 'Twin orbit'], ['bars', 'Top & bottom']];
+const { pickStyle } = require('./autostyle');
+const GLOW_STYLES = [['twin', 'Twin orbit'], ['orbit', 'Orbit'], ['rim', 'Rim'], ['corners', 'Corners'], ['bars', 'Top & bottom']];
 const DEFAULTS = {
-  v: 3,
+  v: 4,
   // glow
-  enabled: true, glowMode: 'music', glowStyle: 'rim', glowColors: 2, color1: '#ff3d81', color2: '#4d7cff', albumColors: true,
+  enabled: true, glowMode: 'music', glowStyle: 'twin', glowColors: 2, color1: '#ff3d81', color2: '#4d7cff', albumColors: true,
   thickness: 10, glow: 60, intensity: 1.0, speed: 1.0, idleBrightness: 0.8, glowDisplays: 'all', glowOverFullscreen: true,
   // lyrics
-  lyrics: true, lyricStyle: 'visual', lyricShuffle: 'off',   // off | song (new style every song) | minute (and every minute)
+  lyrics: true, lyricStyle: 'visual', lyricShuffle: 'auto',   // auto (fits each song) | off | song (new style every song) | minute (and every minute)
   pinnedStyles: ['visual', 'messages', 'codestyle', 'stack', 'poster'],
   lyricFont: 'Segoe UI Variable Display', lyricScale: 100, lyricMatchAlbum: true,
   lyricColors: { text: '#f2f2f2', hl: '#ff7a7a', sec: '#ffffff' },
@@ -55,10 +56,12 @@ function load() {
       if (s.lyricStyle === 'bubbles') s.lyricStyle = 'messages';
       delete s.mode; delete s.lyricSize;
     }
+    // 1.6: Auto lyric style and Twin orbit became the defaults; move people still on the old defaults (Off / Rim) across
+    if (!s.v || s.v < 4) { if (!s.lyricShuffle || s.lyricShuffle === 'off') s.lyricShuffle = 'auto'; if (!s.glowStyle || s.glowStyle === 'rim') s.glowStyle = 'twin'; }
     settings = { ...settings, ...s, v: DEFAULTS.v };
     if (!STYLE_NAMES[settings.lyricStyle]) settings.lyricStyle = DEFAULTS.lyricStyle;
-    if (!['off', 'song', 'minute'].includes(settings.lyricShuffle)) settings.lyricShuffle = 'off';
-    if (!GLOW_STYLES.some(g => g[0] === settings.glowStyle)) settings.glowStyle = 'rim';
+    if (!['auto', 'off', 'song', 'minute'].includes(settings.lyricShuffle)) settings.lyricShuffle = DEFAULTS.lyricShuffle;
+    if (!GLOW_STYLES.some(g => g[0] === settings.glowStyle)) settings.glowStyle = DEFAULTS.glowStyle;
   } catch {}
 }
 let saveT;
@@ -88,12 +91,20 @@ function state() {
 // ---------- style shuffle ----------
 // Picks from the pinned styles when two or more are pinned (your favourites), otherwise from every style.
 // Never repeats the style that is already showing.
-function shuffleNext() {
-  if (settings.lyricShuffle === 'off') return false;
+// Auto does the same, but weighs the pool by how well each style fits the song (see autostyle.js). It waits for the new
+// song's lyrics before choosing, so the style on screen changes once, not twice.
+function shuffleNext(lyricsReady) {
+  const mode = settings.lyricShuffle;
+  if (mode === 'off') return false;
+  if (mode === 'auto' && shuffleStyle && !lyricsReady) return false;
   const pinned = (settings.pinnedStyles || []).filter(k => STYLE_NAMES[k]);
   const pool = pinned.length >= 2 ? pinned : Object.keys(STYLE_NAMES);
   const cur = shuffleStyle || settings.lyricStyle, opts = pool.filter(k => k !== cur);
-  const next = opts[Math.floor(Math.random() * opts.length)] || cur;
+  let next;
+  if (mode === 'auto') {
+    const r = pickStyle({ lines: lyrics.state === 'synced' ? lyrics.lines : [], durMs: timeline.dur, pool, current: cur });
+    next = r.style; log('auto style', next, '←', r.reason);
+  } else next = opts[Math.floor(Math.random() * opts.length)] || cur;
   const changed = next !== shuffleStyle; shuffleStyle = next; return changed;
 }
 function syncShuffle() {
@@ -325,6 +336,8 @@ async function loadLyrics(force) {
     : { key, state: r.lines.length ? 'synced' : r.instrumental ? 'instrumental' : r.plain ? 'plain' : 'none', lines: r.lines, plain: r.plain, source: r.source,
         timing: r.lines.length ? (r.lines.some(l => l.words) ? 'word' : 'line') : null };
   log('lyrics', key, lyrics.state, lyrics.timing, lyrics.lines.length + ' lines');
+  const restyled = settings.lyricShuffle === 'auto' && lyrics.state === 'synced' && shuffleNext(true);   // Auto: choose now that the words are known
+  if (restyled) { broadcast(); refreshMenu(); }
   sendLyrics(); sendStatus();
 }
 
@@ -396,7 +409,7 @@ function refreshMenuNow() {
     { type: 'separator' },
     { label: 'Style', enabled: false },
     ...(pinned.length ? pinned : [settings.lyricStyle]).map(k => ({ label: STYLE_NAMES[k], type: 'radio', checked: settings.lyricShuffle === 'off' && settings.lyricStyle === k, click: () => applyPatch({ lyricShuffle: 'off', lyricStyle: k }) })),
-    { label: 'Shuffle styles', submenu: [['off', 'Off'], ['song', 'New style every song'], ['minute', 'New style every minute']].map(([v, l]) => ({ label: l, type: 'radio', checked: settings.lyricShuffle === v, click: () => applyPatch({ lyricShuffle: v }) })) },
+    { label: 'Shuffle styles', submenu: [['auto', 'Auto — fits the song'], ['off', 'Off'], ['song', 'New style every song'], ['minute', 'New style every minute']].map(([v, l]) => ({ label: l, type: 'radio', checked: settings.lyricShuffle === v, click: () => applyPatch({ lyricShuffle: v }) })) },
     { type: 'separator' },
     { label: 'Keep screen awake', type: 'checkbox', checked: settings.keepAwake, click: i => applyPatch({ keepAwake: i.checked }) },
     { label: 'Lyrics in full screen (H)', type: 'checkbox', checked: settings.stageLyrics, click: i => applyPatch({ stageLyrics: i.checked }) },
@@ -429,6 +442,8 @@ function applyPatch(patch) {
   settings = { ...settings, ...patch };
   // picking a style by hand while Shuffle is on holds it until Shuffle's next change
   if ('lyricStyle' in patch && settings.lyricShuffle !== 'off') shuffleStyle = patch.lyricStyle;
+  // turning Auto / Shuffle off keeps the style that is on screen rather than snapping back to the one saved earlier
+  if (patch.lyricShuffle === 'off' && !('lyricStyle' in patch) && shuffleStyle) settings.lyricStyle = shuffleStyle;
   if ('lyricShuffle' in patch || 'pinnedStyles' in patch) { if ('lyricShuffle' in patch) shuffleStyle = null; syncShuffle(); }
   if ('enabled' in patch || 'glowOverFullscreen' in patch) updateOverlays();
   if ('glowDisplays' in patch) buildOverlays();

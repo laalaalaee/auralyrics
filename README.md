@@ -16,6 +16,7 @@ Spotify, Apple Music, YouTube in a browser, or anything else in Windows' media c
 | **Ctrl + Alt + L** | Open / close full-screen lyrics from anywhere |
 | **← / →** (in full screen) | Previous / next lyric style |
 | **Space** | Play / pause |
+| **C** (in full screen) | Show the cover / back to the lyrics |
 | **+ / −** | Bigger / smaller lyrics |
 | **Esc** | Close the open panel, then leave full screen |
 
@@ -32,15 +33,25 @@ playback, pinned styles, keep screen awake, desktop lyrics, text size and which 
 | Classic | Stack · Karaoke · Minimal |
 | Album cover | Poster — the cover as a poster, title and artist printed beside it, the sung line next to it |
 
-**Shuffle styles** (Style menu, Look tab or tray) picks a new style on its own — every song, or every minute too.
-It draws from your pinned 📌 styles (all of them if fewer than two are pinned) and never repeats the one on screen.
-Choosing a style by hand holds it until Shuffle's next change.
+**Auto** (the default; ✨ in the full-screen caption, Style menu, Look tab or tray) picks the style that suits each song.
+It reads the lyrics once they load — pace, how long the lines are, what the song talks about (money, places, the night sky,
+texting) — and the time of day, then picks at random, weighted by fit: a fast, clipped track leans kinetic, a slow one calm,
+a song about cash gets Money, one about a highway gets Map, a late-night one gets Poster or Minimal. A weaker fit can still
+win, so it never gets predictable.
+
+**Shuffle styles** (same places) picks purely at random instead — every song, or every minute too.
+Both draw from your pinned 📌 styles (all of them if fewer than two are pinned) and never repeat the one on screen.
+Choosing a style by hand holds it until the next change; turning Auto or Shuffle off keeps what's on screen.
+
+In full screen, **click the small cover** in the player to show it big in place of the lyrics, and click it again (or press
+**C**) to bring the lyrics back.
 
 Words light up as they're sung. Lyrics come from [LRCLIB](https://lrclib.net) (free and open); when a song has
 real per-word timing it's used, otherwise word timing is estimated within each line. The Status tab says which.
 
 ## Glow options
 
+Twin orbit (default) · Orbit · Rim · Corners · Top & bottom style ·
 Default / Music Sync / Idle / None animation · one or two colours · album colours or your own · thickness, glow,
 brightness, reactivity, speed · all displays, main display or a chosen monitor · optionally hides over full-screen
 apps · rests while the PC is locked or asleep.
@@ -72,6 +83,7 @@ Debug helpers: `GLOWRIM_DEBUG=1` prints the log to the console (it's always writ
 | `audio.html` | Hidden window: system-audio loopback beat analysis + album-art palette extraction |
 | `glow.js` | Shared edge-glow renderer (desktop overlay + full-screen view) |
 | `engine.js` / `engine.css` | Lyrics engine and all 17 styles |
+| `autostyle.js` | Auto: scores every style against the song's lyrics and the time of day |
 | `stage.html` | Full-screen lyrics view with the settings bar |
 | `lyrics.html` | Floating desktop lyrics |
 | `panel.html` | Main window: live style preview, gallery, player, settings, status checklist |
