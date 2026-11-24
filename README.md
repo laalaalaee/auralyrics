@@ -96,9 +96,9 @@ Animation modes: **Music Sync** (follows the beat), **Default** (a steady flow),
 
 ## The app
 
-A main window with a live preview of every style, a gallery, the player, and all settings. Auralyrics then lives in the system tray, so it stays out of your way.
+One window does it all: the lyrics, a toolbar with Lyrics and Glow menus (styles, fonts, colours, size, glow), a status check, and settings. Drag it, resize it, minimise it, or maximise it for full screen. Auralyrics then lives in the system tray, so it stays out of your way.
 
-<p align="center"><img src="docs/screenshots/window.png" alt="The Auralyrics main window: live style preview, style gallery, player and settings" width="760"></p>
+<p align="center"><img src="docs/screenshots/window.png" alt="The Auralyrics window showing synced lyrics, with the toolbar and player" width="760"></p>
 
 <br>
 
@@ -138,7 +138,7 @@ Spotify, Apple Music, YouTube and YouTube Music in a browser, and any app that s
 No. There is no sign-in and nothing to connect. Auralyrics reads what Windows says is playing.
 
 **Where do the lyrics come from?**
-[LRCLIB](https://lrclib.net), a free and open lyrics database. When a song has real per-word timing it is used, otherwise word timing is estimated within each line. The Status tab shows which one you are getting. Very new or niche releases are sometimes missing; the glow still works.
+[LRCLIB](https://lrclib.net), a free and open lyrics database. When a song has real per-word timing it is used, otherwise word timing is estimated within each line. The status button in the toolbar shows which one you are getting. Very new or niche releases are sometimes missing; the glow still works.
 
 **Does it record my audio?**
 No. It reads the PC's audio **output** locally to find the beat. It never uses the microphone, and no audio leaves your computer.
@@ -150,7 +150,7 @@ Only the song title, artist and length, to LRCLIB, to find the lyrics.
 The glow and lyrics are built to be light: colours are drawn only when they change, and per frame only the position and opacity are updated. It also rests while your PC is locked or asleep.
 
 **It does not see my player.**
-Start a song, then use **Reconnect to the player** on the Status tab. Some players only appear once they have played audio.
+Start a song, then open the status button in the toolbar and use **Reconnect to the player**. Some players only appear once they have played audio.
 
 <br>
 
@@ -182,9 +182,8 @@ Debug helpers: `AURALYRICS_DEBUG=1` prints the log to the console (it is always 
 | `glow.js` | Shared edge-glow renderer (desktop overlay and full-screen view) |
 | `engine.js` / `engine.css` | Lyrics engine and all 17 styles |
 | `autostyle.js` | Auto: scores every style against the song's lyrics and the time of day |
-| `stage.html` | Full-screen lyrics view with the settings bar |
+| `stage.html` | The lyrics window and its full-screen copy, with the toolbar, menus, status and settings |
 | `lyrics.html` | Floating desktop lyrics |
-| `panel.html` | Main window: live style preview, gallery, player, settings, status checklist |
 | `overlay.html` | Click-through glow overlay, one per display |
 | `preload.js` | Safe IPC bridge for the pages |
 

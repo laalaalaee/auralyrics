@@ -63,7 +63,7 @@ function createUpdater({ app, net, shell, Notification, log, icon, enabled, onCh
     else toast('Auralyrics update available', `Version ${st.version} is out. Click to open the download page.`, openPage);
   }
   function fail(e) {
-    log('update check failed', e && e.message || String(e));
+    log('update check failed', String(e && e.message || e).split('\n')[0].slice(0, 160));   // electron-updater puts whole HTTP headers in the message
     set({ status: 'error' });
     if (manual) toast('Could not check for updates', 'Check your connection and try again.');
   }

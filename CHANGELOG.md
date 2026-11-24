@@ -13,7 +13,8 @@ Glowrim was renamed to Auralyrics in 2.0.0.
 - Auto now also changes the style during a song, every 40 to 75 seconds, picking the same weighted way. The first change of each song never lands right after the song's own pick.
 - The little style-name pill ("✨ Branches") no longer pops up over the middle of the lyrics. It sits small in the top-left corner.
 - Auralyrics opens to that window instead of straight to full screen. If you liked the old behaviour, turn on "Open full screen when Auralyrics starts" in Settings.
-- The tray's "Open Auralyrics" opens the lyrics window. The old main window is now "Settings and styles…", also reachable from the ⚙ button.
+- The separate main window is gone. Its jobs moved into the lyrics window's toolbar: the status button opens the player checklist, lyric timing (per song and Bluetooth delay) and Reconnect, and ⚙ opens Settings (Start with Windows, open full screen at launch, updates, quick tour and privacy notes). The tray's "Open Auralyrics" opens the lyrics window.
+- The Glow menu has "Reset glow strength to default", for glow that has been turned down to a hairline.
 - Source-available under the PolyForm Noncommercial License 1.0.0. See LICENSE and CONTRIBUTING.md.
 - Auralyrics has its own app icon (a twin-colour glow ring) on the exe, the installer, the shortcuts and the taskbar.
 

@@ -7,8 +7,6 @@ contextBridge.exposeInMainWorld('api', {
   updateAction: () => ipcRenderer.send('updateAction'),
   hit: v => ipcRenderer.send('lyricsHit', !!v),
   stage: on => ipcRenderer.send('stage', on),
-  openWindow: tab => ipcRenderer.send('openWindow', tab),
-  onTab: on('tab'),
   level: lv => ipcRenderer.send('level', lv),
   artColors: cols => ipcRenderer.send('artColors', cols),
   onSettings: on('settings'),

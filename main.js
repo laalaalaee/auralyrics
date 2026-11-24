@@ -77,7 +77,7 @@ let saveT;
 function save() { clearTimeout(saveT); saveT = setTimeout(() => { try { fs.writeFileSync(settingsFile(), JSON.stringify(settings, null, 2)); } catch {} }, 250); }
 
 // ---------- state ----------
-let overlays = [], panel = null, lyricsWin = null, tray = null, audioWin = null, mediaProc = null, stageWins = [];
+let overlays = [], lyricsWin = null, tray = null, audioWin = null, mediaProc = null, stageWins = [];
 let stageWin = null, returnHome = false;   // stageWin: the movable lyrics window. stageWins: the full-screen copies of it (one per display)
 let nowPlaying = { title: '', artist: '', status: 'None', app: '', art: '' };
 let timeline = { pos: 0, dur: 0, upd: 0, status: 'None', canSeek: false };
@@ -136,7 +136,7 @@ function syncShuffle() {
   if (settings.lyricShuffle === 'minute') shuffleTimer = setInterval(() => { if (playing() && shuffleNext()) { broadcast(); refreshMenu(); } }, 60000);
 }
 function send(win, ch, data) { if (alive(win)) win.webContents.send(ch, data); }
-const uiWindows = () => [panel, lyricsWin, stageWin, ...stageWins];
+const uiWindows = () => [lyricsWin, stageWin, ...stageWins];
 function broadcastNow() {
   const s = state();
   overlays.forEach(w => send(w, 'settings', s));
@@ -186,7 +186,7 @@ function buildOverlays() {
     return w;
   });
   if (alive(lyricsWin)) lyricsWin.moveTop();
-  [panel, stageWin, ...stageWins].forEach(w => send(w, 'displays', displayList()));
+  [stageWin, ...stageWins].forEach(w => send(w, 'displays', displayList()));
 }
 function updateOverlays() {
   overlays.forEach(w => {
@@ -245,7 +245,7 @@ function defaultHomeBounds() {
 }
 function openHome() {
   if (stageWins.length) { stageWins.forEach(w => alive(w) && (w.show(), w.focus())); return; }   // already full screen
-  if (alive(stageWin)) { if (stageWin.isMinimized()) stageWin.restore(); stageWin.show(); stageWin.focus(); return; }
+  if (alive(stageWin)) { bringToFront(stageWin); return; }
   const b = onSomeDisplay(settings.stageBounds) ? settings.stageBounds : defaultHomeBounds();
   const w = stageWin = new BrowserWindow({
     ...b, minWidth: 360, minHeight: 240, title: 'Auralyrics', backgroundColor: '#000000', icon: appIcon(64), autoHideMenuBar: true, show: false,
@@ -286,7 +286,7 @@ function openStage() {
     w.webContents.once('did-finish-load', () => {
       primeWindow(w); send(w, 'displays', displayList()); sendStatus();
       if (shot) {
-        [[6000, 'idle', ''], [8000, 'ui', ''], [10000, 'lyrmenu', "openMenu('mLyr')"], [12000, 'glowmenu', "openMenu('mGlow')"]].forEach(([ms, name, js]) => setTimeout(() =>
+        [[6000, 'idle', ''], [8000, 'ui', ''], [10000, 'lyrmenu', "openMenu('mLyr')"], [12000, 'glowmenu', "openMenu('mGlow')"], [14000, 'statusmenu', "openMenu('mStatus')"], [16000, 'appmenu', "openMenu('mApp')"]].forEach(([ms, name, js]) => setTimeout(() =>
           w.webContents.executeJavaScript(`${name === 'idle' ? "document.body.classList.add('idle')" : 'wake()'};${js}`)
             .then(() => new Promise(r => setTimeout(r, 500))).then(() => w.webContents.capturePage())
             .then(img => fs.writeFileSync(path.join(shot, `stage-${name}.png`), img.toPNG())), ms));
@@ -405,32 +405,15 @@ function helperState() {
 function sendStatus() {
   const st = { helper: helperState(), app: nowPlaying.app, title: nowPlaying.title, artist: nowPlaying.artist, status: nowPlaying.status,
     lyrics: lyrics.state, timing: lyrics.timing, lines: lyrics.lines.length, canSeek: timeline.canSeek, stage: stageWins.length > 0 };
-  [panel, stageWin, ...stageWins].forEach(w => send(w, 'status', st));
+  [stageWin, ...stageWins].forEach(w => send(w, 'status', st));
 }
 
-// ---------- main window ----------
-function openPanel() {
-  if (alive(panel)) { bringToFront(); return; }
-  panel = new BrowserWindow({
-    width: 980, height: 820, minWidth: 360, minHeight: 480, title: 'Auralyrics',
-    backgroundColor: '#07070a', autoHideMenuBar: true, icon: appIcon(64), show: false,
-    webPreferences: { preload }
-  });
-  panel.loadFile('panel.html');
-  panel.webContents.once('did-finish-load', () => { primeWindow(panel); send(panel, 'displays', displayList()); sendStatus(); });
-  panel.once('ready-to-show', () => { if (!process.env.AURALYRICS_SHOT) bringToFront(); else panel.showInactive(); });
-  // dev only: AURALYRICS_SHOT=<dir> saves screenshots of the window without stealing focus
-  if (process.env.AURALYRICS_SHOT) [[5000, 'look'], [8000, 'status'], [10000, 'glow']].forEach(([ms, tab], k) => setTimeout(() => alive(panel) &&
-    panel.webContents.executeJavaScript(`openTab('${tab}'); document.querySelector('.right').scrollTop = 0`)
-      .then(() => new Promise(r => setTimeout(r, 300))).then(() => panel.webContents.capturePage())
-      .then(img => fs.writeFileSync(path.join(process.env.AURALYRICS_SHOT, `panel${k}.png`), img.toPNG())), ms));
-}
 // Windows blocks background apps from stealing focus; nudge the window to the top.
-function bringToFront() {
-  if (!alive(panel)) return;
-  if (panel.isMinimized()) panel.restore();
-  panel.show(); panel.setAlwaysOnTop(true); panel.focus(); panel.moveTop();
-  setTimeout(() => alive(panel) && panel.setAlwaysOnTop(false), 1200);
+function bringToFront(w) {
+  if (!alive(w)) return;
+  if (w.isMinimized()) w.restore();
+  w.show(); w.setAlwaysOnTop(true); w.focus(); w.moveTop();
+  setTimeout(() => alive(w) && w.setAlwaysOnTop(false), 1200);
 }
 
 function appIcon(s = 16) {
@@ -461,7 +444,6 @@ function refreshMenuNow() {
     { label: 'Previous', enabled: has, click: () => control('prev') },
     { type: 'separator' },
     { label: 'Open Auralyrics', click: openHome },
-    { label: 'Settings and styles…', click: openPanel },
     { type: 'separator' },
     { label: 'Style', enabled: false },
     ...(pinned.length ? pinned : [settings.lyricStyle]).map(k => ({ label: STYLE_NAMES[k], type: 'radio', checked: settings.lyricShuffle === 'off' && settings.lyricStyle === k, click: () => applyPatch({ lyricShuffle: 'off', lyricStyle: k }) })),
@@ -503,6 +485,7 @@ function applyPatch(patch) {
   if ('songNudge' in patch) { songNudge = Math.max(-10, Math.min(10, Math.round(patch.songNudge * 10) / 10)); delete patch.songNudge; }
   if (patch.resetLyricPos) { delete patch.resetLyricPos; patch.lyricBounds = null; if (alive(lyricsWin)) lyricsWin.setBounds(defaultLyricBounds()); }
   if (patch.resetColors) { delete patch.resetColors; patch.lyricColors = { ...DEFAULTS.lyricColors }; }
+  if (patch.resetGlow) { delete patch.resetGlow; for (const k of ['thickness', 'glow', 'intensity', 'speed', 'idleBrightness', 'glowSplit']) patch[k] = DEFAULTS[k]; }
   settings = { ...settings, ...patch };
   // picking a style by hand while Shuffle is on holds it until Shuffle's next change
   if ('lyricStyle' in patch && settings.lyricShuffle !== 'off') shuffleStyle = patch.lyricStyle;
@@ -588,11 +571,6 @@ ipcMain.on('control', (_e, cmd, arg) => control(cmd, arg));
 ipcMain.on('reconnect', reconnect);
 ipcMain.on('updateAction', () => updater && updater.action());
 ipcMain.on('stage', (_e, on) => on ? openStage() : closeStage());
-ipcMain.on('openWindow', (_e, tab) => {
-  stageWins.forEach(w => alive(w) && w.isFullScreen() && w.minimize()); // step out of full screen so the window is visible
-  openPanel();
-  if (tab) { const go = () => send(panel, 'tab', tab); panel.webContents.isLoading() ? panel.webContents.once('did-finish-load', go) : go(); }
-});
 ipcMain.on('level', (_e, lv) => { overlays.forEach(w => send(w, 'level', lv)); uiWindows().forEach(w => send(w, 'level', lv)); });
 ipcMain.on('artColors', (_e, cols) => { artColors = cols; broadcast(); sendNow(); log('colors', nowPlaying.title, cols.join(' ')); });
 
@@ -612,7 +590,7 @@ app.whenReady().then(() => {
   updater.start();
   // Started with Windows → stay in the tray. Opened by hand → go straight to the main view.
   const hidden = process.argv.includes('--hidden');
-  if (process.env.AURALYRICS_SHOT) { openPanel(); openStage(); }
+  if (process.env.AURALYRICS_SHOT) openStage();
   else if (!hidden) settings.openFullOnLaunch ? openStage() : openHome();
   if (!hidden && Notification.isSupported()) {
     const n = new Notification({ title: 'Auralyrics is running', body: 'Ctrl + Alt + L toggles full-screen lyrics. Settings live in the tray icon (bottom-right, ^).', icon: appIcon(64) });
