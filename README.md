@@ -10,7 +10,7 @@ Works with **Spotify, Apple Music, YouTube** and anything else Windows can see p
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?style=flat-square&logo=windows11&logoColor=white)
 ![Version](https://img.shields.io/badge/version-2.0.0-ff5f9e?style=flat-square)
 ![Built with](https://img.shields.io/badge/built%20with-Electron-7b5cff?style=flat-square&logo=electron&logoColor=white)
-![Status](https://img.shields.io/badge/status-private%20preview-lightgrey?style=flat-square)
+[![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-lightgrey?style=flat-square)](LICENSE)
 [![Latest release](https://img.shields.io/badge/download-latest%20release-ff5f9e?style=flat-square)](../../releases/latest)
 [![Changelog](https://img.shields.io/badge/changelog-keep%20a%20changelog-7b5cff?style=flat-square)](CHANGELOG.md)
 
@@ -195,8 +195,16 @@ Auralyrics is the new name of Glowrim. On first launch it copies your Glowrim se
 
 <br>
 
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first: commits need a sign-off (`git commit -s`), and contributions are licensed as described there.
+
+<br>
+
 ## License
 
-Copyright © 2026 Auralyrics. All rights reserved. See [LICENSE](LICENSE).
+Auralyrics is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE). You can use it, read the code, modify it and share it for noncommercial purposes. Keep the licence and the `Required Notice:` line in [LICENSE](LICENSE) with any copy you share.
+
+Selling Auralyrics, or using it in a paid product or service, needs a commercial licence. Get in touch: [support@cloudfall.in](mailto:support@cloudfall.in)
 
 Lyrics are provided by [LRCLIB](https://lrclib.net) and remain the property of their rightful owners.

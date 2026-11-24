@@ -21,7 +21,7 @@
     "electron",
     "lrclib"
   ],
-  "license": "UNLICENSED",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "private": true,
   "scripts": {
     "start": "electron .",
@@ -35,7 +35,7 @@
   "build": {
     "appId": "app.auralyrics",
     "productName": "Auralyrics",
-    "copyright": "Copyright © 2026 Auralyrics. All rights reserved.",
+    "copyright": "Copyright © 2026 Auralyrics. PolyForm Noncommercial 1.0.0.",
     "files": [
       "**/*",
       "!dist/**",
