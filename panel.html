@@ -313,10 +313,13 @@
   <div class="pane" id="p-app">
     <div class="card">
       <div class="row"><label>Start with Windows</label><div class="sw" data-k="startup"></div></div>
+      <div class="row"><label>Updates<small id="updTxt">Version</small></label><button class="btn" id="updBtn">Check now</button></div>
+      <div class="row"><label>Look for updates in the background<small>A short request to GitHub every few hours. Nothing else is sent.</small></label><div class="sw" data-k="autoUpdateCheck"></div></div>
       <div class="row"><label>Quick tour<small>A 30-second look at what Auralyrics does.</small></label><button class="btn" id="tourBtn">Show tour</button></div>
       <div class="hint" style="margin:6px 0 12px">
         Auralyrics lives in the tray next to the clock; closing this window keeps it running.<br>
         Lyrics come from <b>LRCLIB</b>, a free open lyrics database — only the song title, artist and length are sent.<br>
+        Update checks ask GitHub for the latest version number, nothing more.<br>
         The glow listens to your PC's sound output to find the beat — never the microphone.<br>
         It rests while your PC is locked or asleep.
       </div>
@@ -489,6 +492,22 @@ function renderDisplays() {
     api.set({ stageDisplays: [...cur] }); });
 }
 
+// ---------- updates ----------
+$('updBtn').onclick = () => api.updateAction();
+function updateRow(u) {
+  if (!u) return;
+  const portable = u.mode !== 'installed';
+  const [line, btn, busy] = ({
+    checking: ['Checking…', 'Check now', true],
+    none: ['Up to date', 'Check now', false],
+    available: ['Version ' + u.version + ' is available', 'Open download page', false],
+    downloading: ['Downloading ' + u.version + ' · ' + u.percent + '%', 'Downloading…', true],
+    ready: ['Version ' + u.version + ' is ready', 'Restart to update', false],
+    error: ["Couldn't check just now", 'Try again', false]
+  })[u.status] || [portable ? 'Portable build: updates are announced here' : '', 'Check now', false];
+  txt($('updTxt'), 'Version ' + u.current + (line ? ' · ' + line : ''));
+  txt($('updBtn'), btn); $('updBtn').disabled = busy;
+}
 // ---------- state from the app ----------
 let lastTileKey = '', lastDispKey = '', lastC1 = '', lastC2 = '', lastSplitDisp = null;
 api.onSettings(s => {
@@ -504,6 +523,7 @@ api.onSettings(s => {
   setVal($('color1'), s.color1); setVal($('color2'), s.color2);
   FONTB.forEach(b => { const on = b.dataset.f === s.lyricFont; b.classList.toggle('on', on); txt(b.lastChild, on ? '✓' : ''); });
   txt($('nVal'), (s.songNudge > 0 ? '+' : '') + (s.songNudge || 0) + ' s');
+  updateRow(s.update);
   if (s.c1 !== lastC1) { lastC1 = s.c1; root.setProperty('--c1', s.c1); }
   if (s.c2 !== lastC2) { lastC2 = s.c2; root.setProperty('--c2', s.c2); }
   splitText(s.glowSplit || 60);

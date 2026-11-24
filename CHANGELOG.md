@@ -2,6 +2,18 @@
 
 Glowrim was renamed to Auralyrics in 2.0.0.
 
+## [2.1.0] — 2026-11-24
+
+### Added
+- Updates. The installed app now checks GitHub for a new version in the background, downloads it, and installs it when you quit. "Restart to update" in the tray finishes it straight away. The portable build only tells you a new version exists and opens the download page.
+- A "Check for updates" item in the tray menu, and an Updates row in Settings with a switch to turn the background check off.
+
+### Changed
+- Source-available under the PolyForm Noncommercial License 1.0.0. See LICENSE and CONTRIBUTING.md.
+
+### Note
+- 2.0.0 has no updater, so install 2.1.0 yourself once. After that, updates come on their own.
+
 ## [2.0.0] — 2026-11-21
 
 Glowrim is now Auralyrics.

@@ -1,7 +1,7 @@
 {
   "name": "auralyrics",
   "productName": "Auralyrics",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Synced full-screen lyrics and an ambient screen-edge glow for Windows, driven by whatever is playing in Spotify, Apple Music or your browser.",
   "main": "main.js",
   "keywords": [
@@ -36,6 +36,13 @@
     "appId": "app.auralyrics",
     "productName": "Auralyrics",
     "copyright": "Copyright © 2026 Auralyrics. PolyForm Noncommercial 1.0.0.",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "laalaalaee",
+        "repo": "auralyrics"
+      }
+    ],
     "files": [
       "**/*",
       "!dist/**",
@@ -69,5 +76,8 @@
     "portable": {
       "artifactName": "Auralyrics-${version}-portable.exe"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   }
 }

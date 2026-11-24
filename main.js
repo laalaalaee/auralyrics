@@ -1,4 +1,5 @@
-const { app, BrowserWindow, Tray, Menu, screen, ipcMain, session, desktopCapturer, nativeImage, net, Notification, powerMonitor, powerSaveBlocker, globalShortcut } = require('electron');
+const { app, BrowserWindow, Tray, Menu, screen, ipcMain, session, desktopCapturer, nativeImage, net, Notification, powerMonitor, powerSaveBlocker, globalShortcut, shell } = require('electron');
+const { createUpdater } = require('./updater');
 const HOTKEY = 'CommandOrControl+Alt+L';
 const { spawn } = require('child_process');
 const readline = require('readline');
@@ -42,7 +43,7 @@ const DEFAULTS = {
   keepAwake: true, stageDisplays: [], stageBg: 'art', stageClock: true, openFullOnLaunch: true, stageLyrics: true,
   glowSplit: 60,
   // general
-  startup: false, onboarded: false
+  startup: false, onboarded: false, autoUpdateCheck: true
 };
 let settings = JSON.parse(JSON.stringify(DEFAULTS));
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
@@ -81,7 +82,7 @@ let nowPlaying = { title: '', artist: '', status: 'None', app: '', art: '' };
 let timeline = { pos: 0, dur: 0, upd: 0, status: 'None', canSeek: false };
 let lyrics = { key: '', state: 'none', lines: [], plain: '', timing: null };
 let artColors = null, songNudge = 0, quitting = false, resting = false, fsDisplayId = null;
-let shuffleStyle = null, shuffleTimer = null;
+let shuffleStyle = null, shuffleTimer = null, updater = null;
 let stageAuto = false, awakeId = null, lastHelperMsg = 0, helperStarted = 0;
 const preload = path.join(__dirname, 'preload.js');
 const unpacked = f => path.join(__dirname, f).replace('app.asar' + path.sep, 'app.asar.unpacked' + path.sep);
@@ -94,7 +95,7 @@ function state() {
   const c2 = settings.glowColors === 1 ? c1 : (useArt ? artColors[1] : settings.color2);
   // lyric colours follow the album cover independently of the glow's colour count
   const activeStyle = settings.lyricShuffle !== 'off' && shuffleStyle ? shuffleStyle : settings.lyricStyle;
-  return { ...settings, c1, c2, lc1: useArt ? artColors[0] : settings.color1, lc2: useArt ? artColors[1] : settings.color2, songNudge, playing: playing(), activeStyle };
+  return { ...settings, c1, c2, lc1: useArt ? artColors[0] : settings.color1, lc2: useArt ? artColors[1] : settings.color2, songNudge, playing: playing(), activeStyle, update: updater ? updater.snapshot() : null };
 }
 // ---------- style shuffle ----------
 // Picks from the pinned styles when two or more are pinned (your favourites), otherwise from every style.
@@ -434,8 +435,16 @@ function refreshMenuNow() {
       ...disp.map(d => ({ label: `${d.label} (${d.size})`, type: 'radio', checked: settings.glowDisplays === d.id, click: () => applyPatch({ glowDisplays: d.id }) }))] },
     { label: 'Follow album colors', type: 'checkbox', checked: settings.albumColors, click: i => applyPatch({ albumColors: i.checked }) },
     { type: 'separator' },
+    updateMenuItem(),
     { label: 'Quit Auralyrics', click: () => app.quit() }
   ]));
+}
+function updateMenuItem() {
+  const u = updater && updater.snapshot();
+  if (u && u.status === 'ready') return { label: `Restart to update to v${u.version}`, click: () => updater.action() };
+  if (u && u.status === 'available') return { label: `Update available: v${u.version} (open download page)`, click: () => updater.action() };
+  if (u && u.status === 'downloading') return { label: `Downloading update v${u.version}… ${u.percent}%`, enabled: false };
+  return { label: 'Check for updates', enabled: !u || u.status !== 'checking', click: () => updater && updater.check(true) };
 }
 
 function setStartup(v) {
@@ -530,6 +539,7 @@ ipcMain.on('set', (_e, patch) => applyPatch(patch));
 ipcMain.on('lyricsHit', (_e, hit) => { if (alive(lyricsWin) && settings.lyricLock) lyricsWin.setIgnoreMouseEvents(!hit, { forward: true }); });
 ipcMain.on('control', (_e, cmd, arg) => control(cmd, arg));
 ipcMain.on('reconnect', reconnect);
+ipcMain.on('updateAction', () => updater && updater.action());
 ipcMain.on('stage', (_e, on) => on ? openStage() : closeStage());
 ipcMain.on('openWindow', (_e, tab) => {
   stageWins.forEach(w => alive(w) && w.isFullScreen() && w.minimize()); // step out of full screen so the window is visible
@@ -543,6 +553,7 @@ app.on('second-instance', () => settings.openFullOnLaunch ? openStage() : openPa
 app.whenReady().then(() => {
   log('start', { version: app.getVersion(), packaged: app.isPackaged });
   load(); syncShuffle();
+  updater = createUpdater({ app, net, shell, Notification, log, icon: () => appIcon(64), enabled: () => settings.autoUpdateCheck, onChange: () => { broadcast(); refreshMenu(); } });
   settings.startup = app.getLoginItemSettings({ path: process.env.PORTABLE_EXECUTABLE_FILE || process.execPath }).openAtLogin;
   buildOverlays();
   buildLyricsWin();
@@ -551,6 +562,7 @@ app.whenReady().then(() => {
   refreshMenuNow();                                                   // the tray needs its menu right away
   startAudio();
   startMedia();
+  updater.start();
   // Started with Windows → stay in the tray. Opened by hand → go straight to the main view.
   const hidden = process.argv.includes('--hidden');
   if (process.env.AURALYRICS_SHOT) { openPanel(); openStage(); }

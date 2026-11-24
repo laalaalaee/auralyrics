@@ -14,6 +14,8 @@
      --title "Auralyrics X.Y.Z" --notes-file release-notes.md --target main
    ```
 
+Also attach `dist\latest.yml` and `dist\Auralyrics-Setup-X.Y.Z.exe.blockmap` to the release. Installed copies read `latest.yml` to find and download updates, so a release without it will not update anyone. The workflow does this for you.
+
 Builds are not code-signed yet. Once there is a certificate, set `CSC_LINK` / `CSC_KEY_PASSWORD` before step 3 and electron-builder signs both files.
 
 ## Automatic releases (GitHub Actions)
@@ -29,5 +31,11 @@ git push origin vX.Y.Z
 release with `SHA256SUMS.txt` and notes taken from the matching `CHANGELOG.md` section.
 Actions → Release → *Run workflow* does a dry run that only uploads the build as a 7-day workflow artifact.
 `ci.yml` runs syntax checks, the unit tests and a version/changelog check on every push and pull request.
+
+## How updates reach people
+
+- Installed build: the app reads `latest.yml` from the latest GitHub Release (every ~6 hours and 30 seconds after launch), downloads the new installer in the background, and installs it when the app quits or from "Restart to update". The repository and its releases must be public for this to work without a token.
+- Portable build: it cannot replace itself, so it only shows "Update available" and opens the release page.
+- Pre-releases and drafts are ignored. To test, publish a normal release with a higher version than the one installed.
 
 To sign the builds, add `CSC_LINK` (base64 `.pfx`) and `CSC_KEY_PASSWORD` as repository secrets.
