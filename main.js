@@ -34,7 +34,7 @@ const DEFAULTS = {
   enabled: true, glowMode: 'music', glowStyle: 'twin', glowColors: 2, color1: '#ff3d81', color2: '#4d7cff', albumColors: true,
   thickness: 10, glow: 60, intensity: 1.0, speed: 1.0, idleBrightness: 0.8, glowDisplays: 'all', glowOverFullscreen: true,
   // lyrics
-  lyrics: true, lyricStyle: 'visual', lyricShuffle: 'auto',   // auto (fits each song) | off | song (new style every song) | minute (and every minute)
+  lyrics: true, lyricStyle: 'visual', lyricShuffle: 'auto',   // auto (fits each song, and switches during it) | off | song (new style every song) | minute (and every minute)
   pinnedStyles: ['visual', 'messages', 'codestyle', 'stack', 'poster'],
   lyricFont: 'Segoe UI Variable Display', lyricScale: 100, lyricMatchAlbum: true,
   lyricColors: { text: '#f2f2f2', hl: '#ff7a7a', sec: '#ffffff' },
@@ -117,10 +117,22 @@ function shuffleNext(lyricsReady) {
   } else next = opts[Math.floor(Math.random() * opts.length)] || cur;
   const changed = next !== shuffleStyle; shuffleStyle = next; return changed;
 }
+// Auto also mixes it up inside a song: a new style every 40 to 75 seconds, picked the same weighted way. The timer starts over
+// whenever a song picks its style, so a change never lands right after the song's own pick.
+const AUTO_SWITCH_MS = [40000, 75000];
+function armAutoTimer() {
+  clearInterval(shuffleTimer); shuffleTimer = null;
+  if (settings.lyricShuffle !== 'auto') return;
+  shuffleTimer = setTimeout(() => {
+    if (playing() && !resting && lyrics.state === 'synced' && shuffleNext(true)) { broadcast(); refreshMenu(); }
+    armAutoTimer();
+  }, AUTO_SWITCH_MS[0] + Math.random() * (AUTO_SWITCH_MS[1] - AUTO_SWITCH_MS[0]));
+}
 function syncShuffle() {
   clearInterval(shuffleTimer); shuffleTimer = null;
   if (settings.lyricShuffle === 'off') { shuffleStyle = null; return; }
   if (!shuffleStyle) shuffleNext();
+  if (settings.lyricShuffle === 'auto') armAutoTimer();
   if (settings.lyricShuffle === 'minute') shuffleTimer = setInterval(() => { if (playing() && shuffleNext()) { broadcast(); refreshMenu(); } }, 60000);
 }
 function send(win, ch, data) { if (alive(win)) win.webContents.send(ch, data); }
@@ -379,6 +391,7 @@ async function loadLyrics(force) {
         timing: r.lines.length ? (r.lines.some(l => l.words) ? 'word' : 'line') : null };
   log('lyrics', key, lyrics.state, lyrics.timing, lyrics.lines.length + ' lines');
   const restyled = settings.lyricShuffle === 'auto' && lyrics.state === 'synced' && shuffleNext(true);   // Auto: choose now that the words are known
+  if (settings.lyricShuffle === 'auto') armAutoTimer();
   if (restyled) { broadcast(); refreshMenu(); }
   sendLyrics(); sendStatus();
 }
@@ -452,7 +465,7 @@ function refreshMenuNow() {
     { type: 'separator' },
     { label: 'Style', enabled: false },
     ...(pinned.length ? pinned : [settings.lyricStyle]).map(k => ({ label: STYLE_NAMES[k], type: 'radio', checked: settings.lyricShuffle === 'off' && settings.lyricStyle === k, click: () => applyPatch({ lyricShuffle: 'off', lyricStyle: k }) })),
-    { label: 'Shuffle styles', submenu: [['auto', 'Auto — fits the song'], ['off', 'Off'], ['song', 'New style every song'], ['minute', 'New style every minute']].map(([v, l]) => ({ label: l, type: 'radio', checked: settings.lyricShuffle === v, click: () => applyPatch({ lyricShuffle: v }) })) },
+    { label: 'Shuffle styles', submenu: [['auto', 'Auto — fits the song and mixes it up'], ['off', 'Off'], ['song', 'New style every song'], ['minute', 'New style every minute']].map(([v, l]) => ({ label: l, type: 'radio', checked: settings.lyricShuffle === v, click: () => applyPatch({ lyricShuffle: v }) })) },
     { type: 'separator' },
     { label: 'Keep screen awake', type: 'checkbox', checked: settings.keepAwake, click: i => applyPatch({ keepAwake: i.checked }) },
     { label: 'Lyrics in full screen (H)', type: 'checkbox', checked: settings.stageLyrics, click: i => applyPatch({ stageLyrics: i.checked }) },

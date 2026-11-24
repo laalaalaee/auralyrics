@@ -109,7 +109,8 @@
   .gcols input::-webkit-color-swatch-wrapper{padding:0}.gcols input::-webkit-color-swatch{border:2px solid rgba(255,255,255,.35);border-radius:50%}
   .dis{opacity:.35;pointer-events:none}
   /* the toast is glass too: hidden after its fade so its backdrop blur is not kept alive */
-  #toast{position:absolute;left:50%;top:50%;translate:-50% -50%;scale:.92;padding:10px 18px;border-radius:99px;font-size:15px;font-weight:600;opacity:0;visibility:hidden;
+  /* top-left: out of the way of the lyrics, the clock and the toolbar */
+  #toast{position:absolute;left:20px;top:20px;transform-origin:left top;scale:.92;padding:8px 14px;border-radius:99px;font-size:13px;font-weight:600;opacity:0;visibility:hidden;
     transition:opacity .3s,scale .3s,visibility 0s linear .3s;pointer-events:none;z-index:3}
   #toast.show{opacity:1;scale:1;visibility:visible;transition-delay:0s}
 
@@ -179,7 +180,7 @@
     <div class="mh">Style</div><div id="mStyles"></div>
     <div class="ms"></div>
     <div class="mh">Shuffle styles</div>
-    <div class="mi" data-v="lyricShuffle:auto"><span class="ck"></span><span class="lbl">Auto — fits the song</span></div>
+    <div class="mi" data-v="lyricShuffle:auto"><span class="ck"></span><span class="lbl">Auto — fits the song and mixes it up</span></div>
     <div class="mi" data-v="lyricShuffle:off"><span class="ck"></span><span class="lbl">Off</span></div>
     <div class="mi" data-v="lyricShuffle:song"><span class="ck"></span><span class="lbl">New style every song</span></div>
     <div class="mi" data-v="lyricShuffle:minute"><span class="ck"></span><span class="lbl">New style every minute</span></div>

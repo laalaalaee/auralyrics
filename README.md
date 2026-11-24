@@ -66,7 +66,7 @@ Most lyrics apps give you a text box. Auralyrics turns your whole screen into th
 
 ### Auto picks for you
 
-Turn on **Auto** (it is the default) and Auralyrics chooses a style for every song. Once the lyrics load it looks at:
+Turn on **Auto** (it is the default) and Auralyrics chooses a style for every song, then mixes it up every 40 to 75 seconds while the song plays. Once the lyrics load it looks at:
 
 - **Pace and line length**: fast, short lines lean kinetic; slow, long lines lean calm.
 - **What the song is about**: money, places, the night sky, texting and calling.
