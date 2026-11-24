@@ -8,7 +8,7 @@ Full-screen, word-by-word synced lyrics in 17 styles, wrapped in a rim of light 
 Works with **Spotify, Apple Music, YouTube** and anything else Windows can see playing. No account, no sign-in.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?style=flat-square&logo=windows11&logoColor=white)
-![Version](https://img.shields.io/badge/version-2.1.0-ff5f9e?style=flat-square)
+![Version](https://img.shields.io/badge/version-2.2.0-ff5f9e?style=flat-square)
 ![Built with](https://img.shields.io/badge/built%20with-Electron-7b5cff?style=flat-square&logo=electron&logoColor=white)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-lightgrey?style=flat-square)](LICENSE)
 [![Latest release](https://img.shields.io/badge/download-latest%20release-ff5f9e?style=flat-square)](../../releases/latest)

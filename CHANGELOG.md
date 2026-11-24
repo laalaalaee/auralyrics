@@ -2,7 +2,7 @@
 
 Glowrim was renamed to Auralyrics in 2.0.0.
 
-## [2.1.0] — 2026-11-24
+## [2.2.0] — 2026-11-25
 
 ### Added
 - Updates. The installed app now checks GitHub for a new version in the background, downloads it, and installs it when you quit. "Restart to update" in the tray finishes it straight away. The portable build only tells you a new version exists and opens the download page.
@@ -26,7 +26,7 @@ Glowrim was renamed to Auralyrics in 2.0.0.
 - Task Manager listed the app as "Electron" with the default atom icon. The exe now identifies itself as Auralyrics.
 
 ### Note
-- 2.0.0 has no updater, so install 2.1.0 yourself once. After that, updates come on their own.
+- 2.0.0 has no updater, so install 2.2.0 yourself once. After that, updates come on their own.
 
 ## [2.0.0] — 2026-11-21
 

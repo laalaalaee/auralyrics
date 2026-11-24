@@ -1,6 +1,6 @@
 name: Release
 
-# Push a version tag (git tag v2.1.0 && git push origin v2.1.0) and this builds the Windows installer and
+# Push a version tag (git tag v2.2.0 && git push origin v2.2.0) and this builds the Windows installer and
 # portable app, then publishes them, with checksums, as a GitHub Release.
 # Run it by hand (Actions -> Release -> Run workflow) to do a dry run: it builds and uploads the files as a
 # workflow artifact only, without creating a release.

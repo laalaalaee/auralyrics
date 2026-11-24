@@ -1,7 +1,7 @@
 {
   "name": "auralyrics",
   "productName": "Auralyrics",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Synced full-screen lyrics and an ambient screen-edge glow for Windows, driven by whatever is playing in Spotify, Apple Music or your browser.",
   "main": "main.js",
   "keywords": [
