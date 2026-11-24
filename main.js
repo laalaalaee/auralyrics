@@ -282,15 +282,14 @@ function openStage() {
   const shot = process.env.AURALYRICS_SHOT; // dev only: render off-screen and save screenshots (AURALYRICS_SHOT_SIZE=1000x620, AURALYRICS_SHOT_MODE=window)
   const shotSize = (process.env.AURALYRICS_SHOT_SIZE || '1600x900').split('x').map(Number), shotWin = process.env.AURALYRICS_SHOT_MODE === 'window';
   const home = alive(stageWin) && stageWin.isVisible() ? stageWin : null;
-  returnHome = !!home;                                                    // leaving full screen brings the window back
+  returnHome = !!home;                                                    // the hotkey returns to the window only if it was open
   stageWins = stageTargets(home).slice(0, shot ? 1 : 9).map((d, k) => {
     const w = new BrowserWindow({
       ...(shot ? { width: shotSize[0], height: shotSize[1] } : d.bounds), frame: false, show: false, title: 'Auralyrics Lyrics', backgroundColor: '#000000',
       icon: appIcon(64), autoHideMenuBar: true, webPreferences: { preload, backgroundThrottling: false, offscreen: !!shot }
     });
     w._displayId = d.id;
-    ['show', 'hide', 'minimize', 'restore', 'enter-full-screen'].forEach(ev => w.on(ev, () => setTimeout(updateOverlays, 50)));
-    w.loadFile('stage.html', shot && shotWin ? { query: { mode: 'window' } } : undefined);
+    ['show', 'hide', 'minimize', 'restore', 'enter-full-screen'].forEach(ev => w.on(ev, () => setTimeout(updateOverlays, 50)));    w.loadFile('stage.html', shot && shotWin ? { query: { mode: 'window' } } : undefined);
     w.webContents.once('did-finish-load', () => {
       primeWindow(w); send(w, 'displays', displayList()); sendStatus();
       if (shot) {
@@ -304,15 +303,24 @@ function openStage() {
     });
     w.on('closed', () => {
       stageWins = stageWins.filter(x => x !== w); updateOverlays(); updateLyricsVisibility(); refreshMenu(); sendStatus();
-      if (!stageWins.length && returnHome && !quitting) { returnHome = false; openHome(); }
+      // closed some other way (Alt+F4, the taskbar): land in the lyrics window, not in the tray
+      if (!w._byUs && !stageWins.length && !quitting) openHome();
     });
     return w;
   });
   log('full-screen lyrics open', { displays: stageWins.length });
   updateLyricsVisibility(); refreshMenu();
 }
-function closeStage(toHome = true) { if (!toHome) returnHome = false; stageWins.forEach(w => alive(w) && w.close()); stageWins = []; updateLyricsVisibility(); refreshMenu(); }
-const toggleStage = () => stageWins.length ? closeStage() : openStage();
+// Leaving full screen (Esc, ✕, F11) opens the lyrics window, so Auralyrics stays on the taskbar even if it started in
+// full screen. toHome = false only for the lock screen, a display change, and the hotkey when it was opened from the tray.
+function closeStage(toHome = true) {
+  const had = stageWins.length;
+  stageWins.forEach(w => { if (alive(w)) { w._byUs = true; w.close(); } }); stageWins = [];
+  updateLyricsVisibility(); refreshMenu();
+  if (had && toHome && !quitting) openHome();
+}
+// Ctrl+Alt+L from anywhere: back to the window if you came from it, back to the tray if you came from there
+const toggleStage = () => stageWins.length ? closeStage(returnHome) : openStage();
 
 // ---------- keep the screen awake while music plays ----------
 function updateAwake() {
