@@ -33,6 +33,7 @@ const DEFAULTS = {
   // glow
   enabled: true, glowMode: 'music', glowStyle: 'twin', glowColors: 2, color1: '#ff3d81', color2: '#4d7cff', albumColors: true,
   thickness: 10, glow: 60, intensity: 1.0, speed: 1.0, idleBrightness: 0.8, glowDisplays: 'all', glowOverFullscreen: true,
+  glowDesktop: false,   // the screen-edge glow outside full screen; off by default (full-screen lyrics draw their own)
   // lyrics
   lyrics: true, lyricStyle: 'visual', lyricShuffle: 'auto',   // auto (fits each song, and switches during it) | off | song (new style every song) | minute (and every minute)
   pinnedStyles: ['visual', 'messages', 'codestyle', 'stack', 'poster'],
@@ -196,7 +197,7 @@ function updateOverlays() {
     const hideFs = !settings.glowOverFullscreen && fsDisplayId != null && w._displayId === fsDisplayId;
     // full-screen lyrics draw their own glow; step aside there so it isn't doubled
     const underStage = stageWins.some(s => alive(s) && s.isVisible() && !s.isMinimized() && s._displayId === w._displayId);
-    const show = settings.enabled && !resting && !hideFs && !underStage;
+    const show = settings.enabled && settings.glowDesktop && !resting && !hideFs && !underStage;
     if (show && !w.isVisible()) w.showInactive();
     if (!show && w.isVisible()) w.hide();
   });
@@ -461,6 +462,7 @@ function refreshMenuNow() {
     { label: 'Text size', submenu: [70, 85, 100, 115, 130, 150, 175].map(p => ({ label: p + '%', type: 'radio', checked: settings.lyricScale === p, click: () => applyPatch({ lyricScale: p }) })) },
     { type: 'separator' },
     { label: 'Glow', type: 'checkbox', checked: settings.enabled, click: i => applyPatch({ enabled: i.checked }) },
+    { label: 'Glow on the desktop too', type: 'checkbox', checked: settings.glowDesktop, enabled: settings.enabled, click: i => applyPatch({ glowDesktop: i.checked }) },
     { label: 'Glow style', submenu: GLOW_STYLES.map(([k, l]) => ({ label: l, type: 'radio', checked: settings.glowStyle === k, click: () => applyPatch({ glowStyle: k }) })) },
     { label: 'Glow display', submenu: [
       { label: 'All displays', type: 'radio', checked: settings.glowDisplays === 'all', click: () => applyPatch({ glowDisplays: 'all' }) },
@@ -497,7 +499,7 @@ function applyPatch(patch) {
   // turning Auto / Shuffle off keeps the style that is on screen rather than snapping back to the one saved earlier
   if (patch.lyricShuffle === 'off' && !('lyricStyle' in patch) && shuffleStyle) settings.lyricStyle = shuffleStyle;
   if ('lyricShuffle' in patch || 'pinnedStyles' in patch) { if ('lyricShuffle' in patch) shuffleStyle = null; syncShuffle(); }
-  if ('enabled' in patch || 'glowOverFullscreen' in patch) updateOverlays();
+  if ('enabled' in patch || 'glowOverFullscreen' in patch || 'glowDesktop' in patch) updateOverlays();
   if ('glowDisplays' in patch) buildOverlays();
   if ('startup' in patch) setStartup(patch.startup);
   if ('lyricLock' in patch) applyLock();

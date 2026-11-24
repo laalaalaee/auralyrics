@@ -88,7 +88,7 @@ A rim of light around your screen, in the two strongest colours of the album cov
 | **Corners** | Four corner blooms |
 | **Top & bottom** | Top and bottom edges only, sides clear |
 
-Animation modes: **Music Sync** (follows the beat), **Default** (a steady flow), **Idle** (slow breathing) or **None**. Choose one or two colours, follow the album or set your own, and tune thickness, glow, brightness, reactivity and speed. The glow can run on all displays, the main display, or one monitor of your choice, and it can hide over full-screen apps. Sizes follow your screen, so it looks the same on a laptop, an ultrawide or a 4K monitor.
+Animation modes: **Music Sync** (follows the beat), **Default** (a steady flow), **Idle** (slow breathing) or **None**. Choose one or two colours, follow the album or set your own, and tune thickness, glow, brightness, reactivity and speed. The glow can run on all displays, the main display, or one monitor of your choice, and it can hide over full-screen apps. By default the glow shows with full-screen lyrics; turn on **Glow on the desktop too** to keep it around your screen the rest of the time. Sizes follow your screen, so it looks the same on a laptop, an ultrawide or a 4K monitor.
 
 <p align="center"><img src="docs/screenshots/glow-menu.png" alt="Glow settings menu in full-screen lyrics view" width="760"></p>
 

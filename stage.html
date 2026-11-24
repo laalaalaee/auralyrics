@@ -9,8 +9,13 @@
   body.idle{cursor:none}
   button,select{font:inherit;color:inherit}
   /* background */
-  /* own GPU layer: the 80px blur is rasterised once per cover, not again on every lyric frame */
-  #bg{position:absolute;inset:-10%;background:center/cover;filter:blur(80px) saturate(1.5) brightness(.55);transform:scale(1.1) translateZ(0);will-change:transform;transition:opacity 1s}
+  /* The cover is averaged down and blurred inside a small canvas (paintBg), so this layer is already a smooth gradient
+     and the GPU only stretches it. A big CSS blur over the whole screen instead gets downsampled by Chromium and shows
+     blotches. The grain on top hides the banding that dark 8-bit gradients get. */
+  #bg{position:absolute;left:-8%;top:-8%;width:116%;height:116%;transform:translateZ(0);will-change:transform;transition:opacity 1s;
+    animation:drift 70s ease-in-out infinite alternate}
+  @keyframes drift{from{transform:scale(1) rotate(0deg) translateZ(0)}to{transform:scale(1.12) rotate(3deg) translate(-2%,1.5%) translateZ(0)}}
+  #grain{position:absolute;inset:0;opacity:.06;mix-blend-mode:overlay;pointer-events:none;background-size:160px 160px}
   #tint,#clock{will-change:opacity}
   #tint{position:absolute;inset:0;background:radial-gradient(80% 70% at 50% 45%,transparent,rgba(0,0,0,.7)),
     linear-gradient(180deg,color-mix(in srgb,var(--c1) 22%,transparent),transparent 45%,color-mix(in srgb,var(--c2) 20%,transparent))}
@@ -169,7 +174,7 @@
   #tour .go{border:0;background:#fff;color:#000;font-weight:700;padding:9px 22px;border-radius:99px;cursor:pointer}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style></head><body>
-<div id="bg"></div><div id="tint"></div>
+<canvas id="bg"></canvas><div id="tint"></div><div id="grain"></div>
 <div id="clock"><small id="date"></small><b id="time"></b></div>
 <div id="view"></div>
 <div id="cover" title="Show the lyrics"><div class="big" id="bigArt"></div><div class="ct"><b id="ct"></b><span id="ca"></span></div></div>
@@ -250,8 +255,12 @@
     <div class="mrow"><span>Override album color</span><div class="sw" data-k="albumColors" data-invert="1"></div></div>
     <div class="gcols" id="gcols"><label><input type="color" id="color1">Primary</label><label id="sec2"><input type="color" id="color2">Secondary</label></div>
     <div class="ms"></div>
-    <div class="mrow"><span>Display</span><select id="gDisp"></select></div>
-    <div class="mrow"><span>Over full-screen apps</span><div class="sw" data-k="glowOverFullscreen"></div></div>
+    <div class="mrow"><span>Glow on the desktop too</span><div class="sw" data-k="glowDesktop"></div></div>
+    <div class="mnote">Off: the glow shows in full screen. On: it also rims your screen the rest of the time.</div>
+    <div id="deskGlow">
+      <div class="mrow"><span>Display</span><select id="gDisp"></select></div>
+      <div class="mrow"><span>Over full-screen apps</span><div class="sw" data-k="glowOverFullscreen"></div></div>
+    </div>
     <div class="ms"></div>
     <div class="mi" id="resetG"><span class="ck"></span><span class="lbl">Reset glow strength to default</span></div>
   </div>
@@ -314,7 +323,35 @@ const calcScale = () => Math.max(.7, Math.min(innerHeight / 720, innerWidth / 90
 const view = new LyricsView($('view'), { full: true, scale: calcScale() });
 $('view').classList.add('full');
 let S = null, DISP = [], menu = null, fitT, lastMenuKey = '';
-addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(() => { view.opt.scale = calcScale(); if (S) view.setSettings(S); }, 80); });
+addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(() => { view.opt.scale = calcScale(); if (S) view.setSettings(S); paintBg(bgUrl); }, 80); });
+
+// ---------- background: a smooth colour field from the cover, plus grain ----------
+const bgC = $('bg'), bgX = bgC.getContext('2d');
+let bgUrl = '', bgGen = 0;
+function paintBg(url) {
+  const gen = ++bgGen;
+  if (!url) { bgX.clearRect(0, 0, bgC.width, bgC.height); return; }
+  const img = new Image();
+  img.onload = () => {
+    if (gen !== bgGen) return;                                   // a newer cover arrived meanwhile
+    // 1. average the cover down to 24 px: keeps the colour fields, drops the JPEG blocks of a small thumbnail
+    const t = document.createElement('canvas'); t.width = t.height = 24;
+    const tx = t.getContext('2d'); tx.imageSmoothingQuality = 'high'; tx.drawImage(img, 0, 0, 24, 24);
+    // 2. stretch it over a 640 px canvas the shape of the window and blur there (cheap, and exact)
+    const W = 640, H = Math.max(200, Math.round(W * innerHeight / Math.max(1, innerWidth)));
+    bgC.width = W; bgC.height = H;
+    bgX.filter = 'blur(26px) saturate(1.45) brightness(.6)'; bgX.imageSmoothingQuality = 'high';
+    const p = 80; bgX.drawImage(t, -p, -p, W + 2 * p, H + 2 * p);   // drawn past the edges so the blur has no dark rim
+    bgX.filter = 'none';
+  };
+  img.src = url;
+}
+(function grain() {   // one 160 px tile of random grey, repeated: dithers away the banding in dark gradients
+  const c = document.createElement('canvas'); c.width = c.height = 160;
+  const x = c.getContext('2d'), d = x.createImageData(160, 160);
+  for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255 | 0; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  x.putImageData(d, 0, 0); $('grain').style.backgroundImage = `url(${c.toDataURL()})`;
+})();
 const FONTS = ['Segoe UI Variable Display', 'Bahnschrift', 'Georgia', 'Cambria', 'Arial Black', 'Palatino Linotype', 'Cascadia Code'];
 const act = s => s.activeStyle || s.lyricStyle;      // the style on screen (Shuffle may have picked it)
 const idxOf = k => Math.max(0, LYRIC_STYLES.findIndex(s => s.key === k));
@@ -360,6 +397,7 @@ api.onSettings(s => {
   LCOLS.forEach(i => setVal(i, (s.lyricColors || {})[i.dataset.c] || '#ffffff'));
   setVal($('color1'), s.color1); setVal($('color2'), s.color2);
   $('gcols').classList.toggle('dis', s.albumColors);
+  $('deskGlow').classList.toggle('dis', !s.glowDesktop);
   // rebuild menus only when their contents change, never on a slider tick (keeps hover + drags smooth)
   const mk = [act(s), s.lyricShuffle, (s.pinnedStyles || []).join(), s.lyricFont, (s.stageDisplays || []).join(), s.glowDisplays].join('|');
   if (mk !== lastMenuKey) { lastMenuKey = mk; renderInfo(); renderStyles(); renderFonts(); renderDisplays(); }
@@ -372,7 +410,7 @@ api.onSettings(s => {
 api.onNow(n => { view.setNow(n); txt($('t'), n.title || 'Nothing playing'); txt($('ar'), n.artist || '');
   const art = n.art || '';
   if (art !== lastArt) { lastArt = art; const u = art ? `url("${art}")` : '';   // re-rasterises the 80px blur: only for a new cover
-    $('art').style.backgroundImage = u; $('bigArt').style.backgroundImage = u; $('bg').style.backgroundImage = u; $('cover').classList.toggle('noart', !art); }
+    $('art').style.backgroundImage = u; $('bigArt').style.backgroundImage = u; bgUrl = art; paintBg(art); $('cover').classList.toggle('noart', !art); }
   txt($('ct'), n.title || ''); txt($('ca'), n.artist || ''); });
 api.onTime(t => { view.setTime(t);
   const playing = t.status === 'Playing';
