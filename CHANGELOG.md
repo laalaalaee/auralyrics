@@ -10,6 +10,10 @@ Glowrim was renamed to Auralyrics in 2.0.0.
 
 ### Changed
 - Source-available under the PolyForm Noncommercial License 1.0.0. See LICENSE and CONTRIBUTING.md.
+- Auralyrics has its own app icon (a twin-colour glow ring) on the exe, the installer, the shortcuts and the taskbar.
+
+### Fixed
+- Task Manager listed the app as "Electron" with the default atom icon. The exe now identifies itself as Auralyrics.
 
 ### Note
 - 2.0.0 has no updater, so install 2.1.0 yourself once. After that, updates come on their own.

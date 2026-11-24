@@ -7,7 +7,8 @@ Auralyrics is source-available under the [PolyForm Noncommercial License 1.0.0](
 ## Before you start
 
 - For anything bigger than a small fix, open an issue first so we can agree on the direction.
-- Run `npm install` then `npm test`. Tests must pass.
+- Run `npm install` then `npm test`. Tests must pass. Node 22.12 or newer is needed (the build step uses it).
+- The app icon is drawn by `scripts/make-icon.js` into `build/icon.ico`. Edit the script and run it again to change the icon.
 - Keep changes focused. One fix or feature per pull request.
 - Commit messages: short and plain, saying what changed.
 
