@@ -145,6 +145,7 @@
     #info p,#dots{display:none}#info h2{font-size:24px}
     #player .c button:not(.big):not(#pv):not(#nx){display:none}#player .m{flex:1}
   }
+  @media (max-width:1170px){body.windowed #bar #statTxt{display:none}}   /* the toolbar would sit on top of the centred date */
   @media (max-height:520px){#clock{display:none}#view,#cover{top:9vh !important}#info{display:none}}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style></head><body>
@@ -184,7 +185,7 @@
     <div class="mi" data-v="lyricShuffle:minute"><span class="ck"></span><span class="lbl">New style every minute</span></div>
     <div class="ms"></div>
     <div class="mi" data-t="keepAwake"><span class="ck"></span><span class="lbl">Keep Screen Awake</span></div>
-    <div class="mi" data-t="lyrics"><span class="ck"></span><span class="lbl">Floating lyrics when not full screen</span></div>
+    <div class="mi" data-t="lyrics"><span class="ck"></span><span class="lbl">Floating lyrics when this window is closed</span></div>
     <div class="ms"></div>
     <div class="mh">Font</div><div id="mFonts"></div>
     <div class="ms"></div>
@@ -237,7 +238,11 @@
 <script src="glow.js"></script>
 <script>
 const $ = id => document.getElementById(id), body = document.body;
-const glow = Glow($('glow'));
+// two modes: the movable window (?mode=window) and the full-screen copy. In the window the real glow is the screen-edge
+// overlay, so the in-page glow stays off; in full screen this page draws it (the overlay steps aside).
+const WINDOWED = new URLSearchParams(location.search).get('mode') === 'window';
+body.classList.toggle('windowed', WINDOWED); if (WINDOWED) document.title = 'Auralyrics';
+const glow = WINDOWED ? { set() {}, level() {} } : Glow($('glow'));
 const calcScale = () => Math.max(.7, Math.min(innerHeight / 720, innerWidth / 900) * 1.15);
 const view = new LyricsView($('view'), { full: true, scale: calcScale() });
 $('view').classList.add('full');
@@ -370,7 +375,7 @@ LCOLS.forEach(i => i.oninput = () => api.set({ lyricColors: { ...S.lyricColors, 
 $('gDisp').onchange = e => api.set({ glowDisplays: e.target.value });
 $('scale').oninput = e => { const v = +e.target.value; txt($('scaleV'), v + '%'); api.set({ lyricScale: v }); }; $('scaleR').onclick = () => api.set({ lyricScale: 100 });
 $('resetC').onclick = () => api.set({ resetColors: true });
-$('openWin').onclick = () => api.openWindow(); $('closeFull').onclick = () => api.stage(false);
+$('openWin').onclick = () => api.openWindow(); $('closeFull').onclick = () => api.stage(WINDOWED);
 
 // ---------- player + bar buttons ----------
 $('pv').onclick = () => api.control('prev'); $('nx').onclick = () => api.control('next'); $('pp').onclick = () => api.control('toggle');
@@ -384,7 +389,13 @@ function toggleCover(on) {
 }
 $('art').onclick = () => toggleCover(); $('cover').onclick = () => toggleCover(false);
 $('reBtn').onclick = () => { api.reconnect(); toast('Reconnecting…'); };
-$('winBtn').onclick = () => api.openWindow(); $('exitBtn').onclick = () => api.stage(false);
+$('winBtn').onclick = () => api.openWindow(); $('exitBtn').onclick = () => api.stage(WINDOWED);
+if (WINDOWED) {   // the window has its own title-bar buttons; this one goes full screen, and Esc / the title-bar buttons do the rest
+  $('exitBtn').textContent = '⛶'; $('exitBtn').title = 'Full screen (F11)';
+  $('closeFull').querySelector('.lbl').textContent = 'Full screen'; $('closeFull').lastElementChild.textContent = 'F11';
+  $('winBtn').title = 'Settings and styles';
+  $('openWin').querySelector('.lbl').textContent = 'Settings and styles…';
+}
 $('statBtn').onclick = () => api.openWindow('status');
 
 // ---------- auto-hide; keyboard ----------
@@ -407,7 +418,8 @@ function wake() {
 addEventListener('mousemove', wake); addEventListener('mousedown', wake); wake();
 addEventListener('keydown', e => {
   wake(); if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
-  if (e.key === 'Escape') { menu ? openMenu(null) : api.stage(false); }
+  if (e.key === 'F11') { e.preventDefault(); api.stage(WINDOWED); }
+  else if (e.key === 'Escape') { if (menu) openMenu(null); else if (!WINDOWED) api.stage(false); }
   else if (e.key === 'ArrowLeft') step(-1); else if (e.key === 'ArrowRight') step(1);
   else if (e.key === 'c' || e.key === 'C') toggleCover();
   else if (e.key === 'h' || e.key === 'H') { api.set({ stageLyrics: S.stageLyrics === false }); toast(S.stageLyrics === false ? 'Lyrics on' : 'Lyrics hidden'); }

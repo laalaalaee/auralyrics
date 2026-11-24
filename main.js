@@ -40,7 +40,7 @@ const DEFAULTS = {
   lyricColors: { text: '#f2f2f2', hl: '#ff7a7a', sec: '#ffffff' },
   lyricOffset: 0, lyricLock: true, lyricBackdrop: false, lyricBounds: null,
   // full-screen lyrics (the main lyrics view)
-  keepAwake: true, stageDisplays: [], stageBg: 'art', stageClock: true, openFullOnLaunch: true, stageLyrics: true,
+  keepAwake: true, stageDisplays: [], stageBg: 'art', stageClock: true, openFullOnLaunch: false, stageLyrics: true, stageBounds: null,
   glowSplit: 60,
   // general
   startup: false, onboarded: false, autoUpdateCheck: true
@@ -78,6 +78,7 @@ function save() { clearTimeout(saveT); saveT = setTimeout(() => { try { fs.write
 
 // ---------- state ----------
 let overlays = [], panel = null, lyricsWin = null, tray = null, audioWin = null, mediaProc = null, stageWins = [];
+let stageWin = null, returnHome = false;   // stageWin: the movable lyrics window. stageWins: the full-screen copies of it (one per display)
 let nowPlaying = { title: '', artist: '', status: 'None', app: '', art: '' };
 let timeline = { pos: 0, dur: 0, upd: 0, status: 'None', canSeek: false };
 let lyrics = { key: '', state: 'none', lines: [], plain: '', timing: null };
@@ -123,7 +124,7 @@ function syncShuffle() {
   if (settings.lyricShuffle === 'minute') shuffleTimer = setInterval(() => { if (playing() && shuffleNext()) { broadcast(); refreshMenu(); } }, 60000);
 }
 function send(win, ch, data) { if (alive(win)) win.webContents.send(ch, data); }
-const uiWindows = () => [panel, lyricsWin, ...stageWins];
+const uiWindows = () => [panel, lyricsWin, stageWin, ...stageWins];
 function broadcastNow() {
   const s = state();
   overlays.forEach(w => send(w, 'settings', s));
@@ -173,7 +174,7 @@ function buildOverlays() {
     return w;
   });
   if (alive(lyricsWin)) lyricsWin.moveTop();
-  [panel, ...stageWins].forEach(w => send(w, 'displays', displayList()));
+  [panel, stageWin, ...stageWins].forEach(w => send(w, 'displays', displayList()));
 }
 function updateOverlays() {
   overlays.forEach(w => {
@@ -219,28 +220,57 @@ function applyLock() {
 }
 function updateLyricsVisibility() {
   if (!alive(lyricsWin)) return;
-  const show = settings.lyrics && !!nowPlaying.title && !resting && !stageWins.length;
+  const homeOpen = alive(stageWin) && stageWin.isVisible() && !stageWin.isMinimized();   // the lyrics window already shows them
+  const show = settings.lyrics && !!nowPlaying.title && !resting && !stageWins.length && !homeOpen;
   if (show && !lyricsWin.isVisible()) { lyricsWin.showInactive(); lyricsWin.moveTop(); }
   if (!show && lyricsWin.isVisible()) lyricsWin.hide();
 }
 
-// ---------- Full-screen lyrics: the main lyrics view, with Verci-style settings on top ----------
-function stageTargets() {
+// ---------- The lyrics window: the main window. Move it, resize it, minimise it. Maximise (or F11) goes full screen. ----------
+function defaultHomeBounds() {
+  const wa = screen.getPrimaryDisplay().workArea, width = Math.min(1100, wa.width - 80), height = Math.min(680, wa.height - 80);
+  return { width, height, x: Math.round(wa.x + (wa.width - width) / 2), y: Math.round(wa.y + (wa.height - height) / 2) };
+}
+function openHome() {
+  if (stageWins.length) { stageWins.forEach(w => alive(w) && (w.show(), w.focus())); return; }   // already full screen
+  if (alive(stageWin)) { if (stageWin.isMinimized()) stageWin.restore(); stageWin.show(); stageWin.focus(); return; }
+  const b = onSomeDisplay(settings.stageBounds) ? settings.stageBounds : defaultHomeBounds();
+  const w = stageWin = new BrowserWindow({
+    ...b, minWidth: 360, minHeight: 240, title: 'Auralyrics', backgroundColor: '#000000', icon: appIcon(64), autoHideMenuBar: true, show: false,
+    webPreferences: { preload, backgroundThrottling: false }
+  });
+  w.loadFile('stage.html', { query: { mode: 'window' } });
+  w.webContents.once('did-finish-load', () => { primeWindow(w); send(w, 'displays', displayList()); sendStatus(); if (alive(w)) { w.show(); w.focus(); } });
+  ['show', 'hide', 'minimize', 'restore'].forEach(ev => w.on(ev, () => updateLyricsVisibility()));
+  // the maximise button means "make it big": go to real full screen, and come back to this window afterwards
+  w.on('maximize', () => { w.unmaximize(); openStage(); });
+  let t; const remember = () => { clearTimeout(t); t = setTimeout(() => { if (alive(w) && !w.isMinimized() && !w.isFullScreen()) { settings.stageBounds = w.getNormalBounds(); save(); } }, 400); };
+  w.on('moved', remember); w.on('resized', remember);
+  w.on('closed', () => { if (stageWin === w) stageWin = null; updateLyricsVisibility(); refreshMenu(); });
+  updateLyricsVisibility();
+}
+
+// ---------- Full-screen lyrics: the same view, one window per display, with Verci-style settings on top ----------
+function stageTargets(home) {
   const all = screen.getAllDisplays(), ids = (settings.stageDisplays || []).map(String);
   const chosen = all.filter(d => ids.includes(String(d.id)));
-  return chosen.length ? chosen : [screen.getPrimaryDisplay()];
+  if (chosen.length) return chosen;
+  return [home ? screen.getDisplayMatching(home.getBounds()) : screen.getPrimaryDisplay()];   // the display the window is on
 }
 function openStage() {
   if (stageWins.length) { stageWins.forEach(w => alive(w) && (w.show(), w.focus())); return; }
-  const shot = process.env.AURALYRICS_SHOT; // dev only: render off-screen and save screenshots
-  stageWins = stageTargets().slice(0, shot ? 1 : 9).map((d, k) => {
+  const shot = process.env.AURALYRICS_SHOT; // dev only: render off-screen and save screenshots (AURALYRICS_SHOT_SIZE=1000x620, AURALYRICS_SHOT_MODE=window)
+  const shotSize = (process.env.AURALYRICS_SHOT_SIZE || '1600x900').split('x').map(Number), shotWin = process.env.AURALYRICS_SHOT_MODE === 'window';
+  const home = alive(stageWin) && stageWin.isVisible() ? stageWin : null;
+  returnHome = !!home;                                                    // leaving full screen brings the window back
+  stageWins = stageTargets(home).slice(0, shot ? 1 : 9).map((d, k) => {
     const w = new BrowserWindow({
-      ...(shot ? { width: 1600, height: 900 } : d.bounds), frame: false, show: false, title: 'Auralyrics Lyrics', backgroundColor: '#000000',
+      ...(shot ? { width: shotSize[0], height: shotSize[1] } : d.bounds), frame: false, show: false, title: 'Auralyrics Lyrics', backgroundColor: '#000000',
       icon: appIcon(64), autoHideMenuBar: true, webPreferences: { preload, backgroundThrottling: false, offscreen: !!shot }
     });
     w._displayId = d.id;
     ['show', 'hide', 'minimize', 'restore', 'enter-full-screen'].forEach(ev => w.on(ev, () => setTimeout(updateOverlays, 50)));
-    w.loadFile('stage.html');
+    w.loadFile('stage.html', shot && shotWin ? { query: { mode: 'window' } } : undefined);
     w.webContents.once('did-finish-load', () => {
       primeWindow(w); send(w, 'displays', displayList()); sendStatus();
       if (shot) {
@@ -250,15 +280,18 @@ function openStage() {
             .then(img => fs.writeFileSync(path.join(shot, `stage-${name}.png`), img.toPNG())), ms));
         return;
       }
-      w.setBounds(d.bounds); w.setFullScreen(true); w.show(); if (k === 0) w.focus();
+      w.setBounds(d.bounds); w.setFullScreen(true); w.show(); if (k === 0) { w.focus(); if (alive(home)) home.hide(); }
     });
-    w.on('closed', () => { stageWins = stageWins.filter(x => x !== w); updateOverlays(); updateLyricsVisibility(); refreshMenu(); sendStatus(); });
+    w.on('closed', () => {
+      stageWins = stageWins.filter(x => x !== w); updateOverlays(); updateLyricsVisibility(); refreshMenu(); sendStatus();
+      if (!stageWins.length && returnHome && !quitting) { returnHome = false; openHome(); }
+    });
     return w;
   });
   log('full-screen lyrics open', { displays: stageWins.length });
   updateLyricsVisibility(); refreshMenu();
 }
-function closeStage() { stageWins.forEach(w => alive(w) && w.close()); stageWins = []; updateLyricsVisibility(); refreshMenu(); }
+function closeStage(toHome = true) { if (!toHome) returnHome = false; stageWins.forEach(w => alive(w) && w.close()); stageWins = []; updateLyricsVisibility(); refreshMenu(); }
 const toggleStage = () => stageWins.length ? closeStage() : openStage();
 
 // ---------- keep the screen awake while music plays ----------
@@ -272,7 +305,7 @@ function updateAwake() {
 function setResting(v) {
   if (resting === v) return; resting = v; log('resting', v);
   send(audioWin, 'audio', v ? 'pause' : 'resume');
-  if (v) closeStage();
+  if (v) closeStage(false);
   updateOverlays(); updateLyricsVisibility(); updateAwake();
 }
 
@@ -359,7 +392,7 @@ function helperState() {
 function sendStatus() {
   const st = { helper: helperState(), app: nowPlaying.app, title: nowPlaying.title, artist: nowPlaying.artist, status: nowPlaying.status,
     lyrics: lyrics.state, timing: lyrics.timing, lines: lyrics.lines.length, canSeek: timeline.canSeek, stage: stageWins.length > 0 };
-  [panel, ...stageWins].forEach(w => send(w, 'status', st));
+  [panel, stageWin, ...stageWins].forEach(w => send(w, 'status', st));
 }
 
 // ---------- main window ----------
@@ -414,7 +447,8 @@ function refreshMenuNow() {
     { label: 'Next', enabled: has, click: () => control('next') },
     { label: 'Previous', enabled: has, click: () => control('prev') },
     { type: 'separator' },
-    { label: 'Open Auralyrics', click: openPanel },
+    { label: 'Open Auralyrics', click: openHome },
+    { label: 'Settings and styles…', click: openPanel },
     { type: 'separator' },
     { label: 'Style', enabled: false },
     ...(pinned.length ? pinned : [settings.lyricStyle]).map(k => ({ label: STYLE_NAMES[k], type: 'radio', checked: settings.lyricShuffle === 'off' && settings.lyricStyle === k, click: () => applyPatch({ lyricShuffle: 'off', lyricStyle: k }) })),
@@ -468,7 +502,7 @@ function applyPatch(patch) {
   if ('lyricLock' in patch) applyLock();
   if ('lyrics' in patch) updateLyricsVisibility();
   if ('keepAwake' in patch) updateAwake();
-  if ('stageDisplays' in patch && stageWins.length) { closeStage(); setTimeout(openStage, 300); }
+  if ('stageDisplays' in patch && stageWins.length) { const back = returnHome; closeStage(false); setTimeout(() => { openStage(); returnHome = back; }, 300); }
   save(); broadcast(); refreshMenu();
 }
 
@@ -549,7 +583,7 @@ ipcMain.on('openWindow', (_e, tab) => {
 ipcMain.on('level', (_e, lv) => { overlays.forEach(w => send(w, 'level', lv)); uiWindows().forEach(w => send(w, 'level', lv)); });
 ipcMain.on('artColors', (_e, cols) => { artColors = cols; broadcast(); sendNow(); log('colors', nowPlaying.title, cols.join(' ')); });
 
-app.on('second-instance', () => settings.openFullOnLaunch ? openStage() : openPanel());
+app.on('second-instance', () => settings.openFullOnLaunch ? openStage() : openHome());
 app.whenReady().then(() => {
   log('start', { version: app.getVersion(), packaged: app.isPackaged });
   load(); syncShuffle();
@@ -558,7 +592,7 @@ app.whenReady().then(() => {
   buildOverlays();
   buildLyricsWin();
   tray = new Tray(appIcon(16));
-  tray.on('click', openPanel);
+  tray.on('click', openHome);
   refreshMenuNow();                                                   // the tray needs its menu right away
   startAudio();
   startMedia();
@@ -566,10 +600,10 @@ app.whenReady().then(() => {
   // Started with Windows → stay in the tray. Opened by hand → go straight to the main view.
   const hidden = process.argv.includes('--hidden');
   if (process.env.AURALYRICS_SHOT) { openPanel(); openStage(); }
-  else if (!hidden) settings.openFullOnLaunch ? openStage() : openPanel();
+  else if (!hidden) settings.openFullOnLaunch ? openStage() : openHome();
   if (!hidden && Notification.isSupported()) {
     const n = new Notification({ title: 'Auralyrics is running', body: 'Ctrl + Alt + L toggles full-screen lyrics. Settings live in the tray icon (bottom-right, ^).', icon: appIcon(64) });
-    n.on('click', openPanel); n.show();
+    n.on('click', openHome); n.show();
   }
   let t; const rebuild = () => { clearTimeout(t); t = setTimeout(() => { buildOverlays(); refreshMenu(); }, 400); };
   screen.on('display-added', rebuild); screen.on('display-removed', rebuild); screen.on('display-metrics-changed', rebuild);

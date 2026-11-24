@@ -106,7 +106,7 @@ A main window with a live preview of every style, a gallery, the player, and all
 
 1. Download the latest release from the [Releases page](../../releases/latest): `Auralyrics-Setup-<version>.exe` to install, or `Auralyrics-<version>-portable.exe` to run without installing. Verify the download against `SHA256SUMS.txt` on the same page. Builds are not code-signed yet, so Windows SmartScreen may ask you to confirm ("More info" → "Run anyway").
 2. Play something in Spotify, Apple Music or a browser tab.
-3. Press **Ctrl + Alt + L** for full-screen lyrics.
+3. Auralyrics opens as a normal window: drag it, resize it, minimise it. Click the **maximise** button (or press **F11**) for full-screen lyrics, and **Esc** to come back to the window. **Ctrl + Alt + L** toggles full screen from anywhere.
 
 Auralyrics lives in the system tray (bottom-right, `^`). The tray menu holds what you reach for mid-song: playback, style and Auto, desktop lyrics, text size, and which display glows.
 
@@ -115,12 +115,13 @@ Auralyrics lives in the system tray (bottom-right, `^`). The tray menu holds wha
 | | |
 |---|---|
 | **Ctrl + Alt + L** | Open / close full-screen lyrics from anywhere |
+| **F11** (in the window) | Full screen |
 | **← / →** (in full screen) | Previous / next lyric style |
 | **C** (in full screen) | Show the cover / back to the lyrics |
 | **H** (in full screen) | Hide / show the lyrics |
 | **Space** | Play / pause |
 | **+ / −** | Bigger / smaller lyrics |
-| **Esc** | Close the open panel, then leave full screen |
+| **Esc** | Close the open menu, then leave full screen back to the window |
 
 ### Floating lyrics
 

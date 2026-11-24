@@ -9,6 +9,9 @@ Glowrim was renamed to Auralyrics in 2.0.0.
 - A "Check for updates" item in the tray menu, and an Updates row in Settings with a switch to turn the background check off.
 
 ### Changed
+- The lyrics are now a normal window you can move, resize and minimise, with the same toolbar and menus as full screen. The maximise button (or F11) goes to full screen, and Esc comes back to the window. The window remembers its size and position, and the screen-edge glow stays on around it.
+- Auralyrics opens to that window instead of straight to full screen. If you liked the old behaviour, turn on "Open full screen when Auralyrics starts" in Settings.
+- The tray's "Open Auralyrics" opens the lyrics window. The old main window is now "Settings and styles…", also reachable from the ⚙ button.
 - Source-available under the PolyForm Noncommercial License 1.0.0. See LICENSE and CONTRIBUTING.md.
 - Auralyrics has its own app icon (a twin-colour glow ring) on the exe, the installer, the shortcuts and the taskbar.
 
