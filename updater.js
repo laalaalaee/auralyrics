@@ -25,7 +25,22 @@ function isNewer(remote, local) {
   if (a.pre === b.pre) return false;
   if (!a.pre) return true;                  // 2.1.0 is newer than 2.1.0-beta
   if (!b.pre) return false;
-  return a.pre > b.pre;
+  return comparePre(a.pre, b.pre) > 0;
+}
+
+// semver pre-release order: dot-separated parts, numbers compared as numbers and ranked below words,
+// and a longer list wins when all shared parts are equal (beta.10 > beta.9, beta.1 > beta, rc > beta)
+function comparePre(x, y) {
+  const a = x.split('.'), b = y.split('.');
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    if (a[i] === undefined) return -1;
+    if (b[i] === undefined) return 1;
+    const an = /^\d+$/.test(a[i]), bn = /^\d+$/.test(b[i]);
+    if (an && bn) { const d = Number(a[i]) - Number(b[i]); if (d) return d; continue; }
+    if (an !== bn) return an ? -1 : 1;
+    if (a[i] !== b[i]) return a[i] > b[i] ? 1 : -1;
+  }
+  return 0;
 }
 
 // the bits we use from GitHub's "latest release" reply; drafts and pre-releases are ignored
@@ -35,7 +50,8 @@ function parseRelease(json) {
   return parseVersion(version) ? { version } : null;
 }
 
-function createUpdater({ app, net, shell, Notification, log, icon, enabled, onChange }) {
+// `autoUpdater` can be passed in (tests use a fake); otherwise electron-updater's is used for installed builds.
+function createUpdater({ app, net, shell, Notification, log, icon, enabled, onChange, autoUpdater }) {
   const portable = !!process.env.PORTABLE_EXECUTABLE_FILE;
   const mode = app.isPackaged && !portable ? 'installed' : portable ? 'portable' : 'dev';
   const st = { mode, status: 'idle', version: '', percent: 0 };
@@ -69,8 +85,7 @@ function createUpdater({ app, net, shell, Notification, log, icon, enabled, onCh
   }
 
   function setupInstalled() {
-    const { autoUpdater } = require('electron-updater');
-    au = autoUpdater;
+    au = autoUpdater || require('electron-updater').autoUpdater;
     au.autoDownload = true;
     au.autoInstallOnAppQuit = true;
     au.allowPrerelease = false;
@@ -95,7 +110,11 @@ function createUpdater({ app, net, shell, Notification, log, icon, enabled, onCh
     checking = true; manual = !!isManual;
     set({ status: 'checking' });
     try {
-      if (au) await au.checkForUpdates(); else await checkNotice();   // installed builds finish through au's events
+      if (au) {                              // installed builds finish through au's events…
+        const r = await au.checkForUpdates();
+        // …except when the updater is inactive (no app-update.yml): it resolves null and emits nothing
+        if (!r && st.status === 'checking') fail(new Error('updater is not active in this build'));
+      } else await checkNotice();
     } catch (e) { if (st.status !== 'error') fail(e); }
     finally { checking = false; manual = false; }
   }
@@ -103,8 +122,9 @@ function createUpdater({ app, net, shell, Notification, log, icon, enabled, onCh
   function start() {
     if (mode === 'installed') { try { setupInstalled(); } catch (e) { log('updater unavailable', e); return; } }
     const tick = () => { if (enabled()) check(false); };
-    setTimeout(tick, FIRST_CHECK_MS);
-    setInterval(tick, EVERY_MS);
+    // unref: the timers never keep a process alive on their own (the app's windows do that; tests rely on it)
+    setTimeout(tick, FIRST_CHECK_MS).unref?.();
+    setInterval(tick, EVERY_MS).unref?.();
   }
 
   // what the tray item and the Settings button do right now
@@ -117,4 +137,4 @@ function createUpdater({ app, net, shell, Notification, log, icon, enabled, onCh
   return { start, check, action, snapshot: () => ({ ...st, current: app.getVersion() }) };
 }
 
-module.exports = { createUpdater, isNewer, parseVersion, parseRelease, RELEASES_URL };
+module.exports = { createUpdater, isNewer, parseVersion, parseRelease, comparePre, RELEASES_URL, API_URL };

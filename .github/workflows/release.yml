@@ -44,12 +44,15 @@ jobs:
       - run: npm test
 
       - name: Build
-        run: npm run dist
+        shell: bash
         env:
-          # Code signing: add CSC_LINK (base64 .pfx) and CSC_KEY_PASSWORD as repository secrets and
-          # electron-builder signs both files. Without them the build is unsigned.
+          # Code signing: add CSC_LINK (base64 .pfx) and CSC_KEY_PASSWORD as repository secrets. package.json keeps
+          # signAndEditExecutable off (its signing toolkit does not unpack on a normal Windows account), so when a
+          # certificate is present this build turns it on. Without the secrets the build is unsigned.
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          if [ -n "$CSC_LINK" ]; then npm run dist -- -c.win.signAndEditExecutable=true; else npm run dist; fi
 
       - name: Checksums
         shell: pwsh

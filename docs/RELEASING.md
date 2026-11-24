@@ -16,7 +16,7 @@
 
 Also attach `dist\latest.yml` and `dist\Auralyrics-Setup-X.Y.Z.exe.blockmap` to the release. Installed copies read `latest.yml` to find and download updates, so a release without it will not update anyone. The workflow does this for you.
 
-Builds are not code-signed yet. Once there is a certificate, set `CSC_LINK` / `CSC_KEY_PASSWORD` before step 3 and electron-builder signs both files.
+Builds are not code-signed yet. `package.json` keeps `signAndEditExecutable: false`, because electron-builder's signing toolkit does not unpack on a normal Windows account; the app's name and icon are stamped by `scripts/after-pack.js` instead. To sign a local build, set `CSC_LINK` / `CSC_KEY_PASSWORD` and run `npm run dist -- -c.win.signAndEditExecutable=true` from an admin prompt (or with Windows Developer Mode on) for step 3.
 
 ## Automatic releases (GitHub Actions)
 
@@ -38,4 +38,4 @@ Actions → Release → *Run workflow* does a dry run that only uploads the buil
 - Portable build: it cannot replace itself, so it only shows "Update available" and opens the release page.
 - Pre-releases and drafts are ignored. To test, publish a normal release with a higher version than the one installed.
 
-To sign the builds, add `CSC_LINK` (base64 `.pfx`) and `CSC_KEY_PASSWORD` as repository secrets.
+To sign the builds, add `CSC_LINK` (base64 `.pfx`) and `CSC_KEY_PASSWORD` as repository secrets. The release workflow sees them and turns signing on for that build. This path has not been tried with a real certificate yet, so check the first signed release (right-click the exe → Properties → Digital Signatures).

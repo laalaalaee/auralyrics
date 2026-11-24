@@ -119,12 +119,14 @@ function shuffleNext(lyricsReady) {
 }
 // Auto also mixes it up inside a song: a new style every 40 to 75 seconds, picked the same weighted way. The timer starts over
 // whenever a song picks its style, so a change never lands right after the song's own pick.
+// A style picked by hand holds until the next song (autoHeld), the way "choosing one by hand holds it" always worked.
 const AUTO_SWITCH_MS = [40000, 75000];
+let autoHeld = false;
 function armAutoTimer() {
   clearInterval(shuffleTimer); shuffleTimer = null;
   if (settings.lyricShuffle !== 'auto') return;
   shuffleTimer = setTimeout(() => {
-    if (playing() && !resting && lyrics.state === 'synced' && shuffleNext(true)) { broadcast(); refreshMenu(); }
+    if (!autoHeld && playing() && !resting && lyrics.state === 'synced' && shuffleNext(true)) { broadcast(); refreshMenu(); }
     armAutoTimer();
   }, AUTO_SWITCH_MS[0] + Math.random() * (AUTO_SWITCH_MS[1] - AUTO_SWITCH_MS[0]));
 }
@@ -314,10 +316,12 @@ function updateAwake() {
 }
 
 // ---------- rest while locked / asleep ----------
+let homeAfterRest = false;   // full screen closes while locked; bring the lyrics window back afterwards if it was in use
 function setResting(v) {
   if (resting === v) return; resting = v; log('resting', v);
   send(audioWin, 'audio', v ? 'pause' : 'resume');
-  if (v) closeStage(false);
+  if (v) { homeAfterRest = homeAfterRest || returnHome; closeStage(false); }
+  else if (homeAfterRest) { homeAfterRest = false; if (!stageWins.length) openHome(); }
   updateOverlays(); updateLyricsVisibility(); updateAwake();
 }
 
@@ -373,7 +377,7 @@ async function findLyrics(title, artist, durSec) {
 async function loadLyrics(force) {
   const key = nowPlaying.title ? `${nowPlaying.artist}|${nowPlaying.title}` : '';
   if (key === lyrics.key && !force) return;
-  if (key !== lyrics.key) { songNudge = 0; if (key) shuffleNext(); broadcast(); refreshMenu(); }   // per-song nudge resets with the next song; Shuffle moves on
+  if (key !== lyrics.key) { songNudge = 0; autoHeld = false; if (key) shuffleNext(); broadcast(); refreshMenu(); }   // per-song nudge and a hand-picked style reset with the next song; Shuffle moves on
   // No track, or browser media with no artist (e.g. "(8) Instagram") — nothing to look up.
   if (!key || !nowPlaying.artist.trim()) { lyrics = { key, state: 'none', lines: [], plain: '', timing: null }; sendLyrics(); sendStatus(); return; }
   if (force) lyricCache.delete(key);
@@ -488,7 +492,8 @@ function applyPatch(patch) {
   if (patch.resetGlow) { delete patch.resetGlow; for (const k of ['thickness', 'glow', 'intensity', 'speed', 'idleBrightness', 'glowSplit']) patch[k] = DEFAULTS[k]; }
   settings = { ...settings, ...patch };
   // picking a style by hand while Shuffle is on holds it until Shuffle's next change
-  if ('lyricStyle' in patch && settings.lyricShuffle !== 'off') shuffleStyle = patch.lyricStyle;
+  if ('lyricStyle' in patch && settings.lyricShuffle !== 'off') { shuffleStyle = patch.lyricStyle; autoHeld = settings.lyricShuffle === 'auto'; }
+  if ('lyricShuffle' in patch) autoHeld = false;
   // turning Auto / Shuffle off keeps the style that is on screen rather than snapping back to the one saved earlier
   if (patch.lyricShuffle === 'off' && !('lyricStyle' in patch) && shuffleStyle) settings.lyricStyle = shuffleStyle;
   if ('lyricShuffle' in patch || 'pinnedStyles' in patch) { if ('lyricShuffle' in patch) shuffleStyle = null; syncShuffle(); }

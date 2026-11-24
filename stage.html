@@ -205,7 +205,9 @@
     <div class="mi" data-v="lyricShuffle:minute"><span class="ck"></span><span class="lbl">New style every minute</span></div>
     <div class="ms"></div>
     <div class="mi" data-t="keepAwake"><span class="ck"></span><span class="lbl">Keep Screen Awake</span></div>
-    <div class="mi" data-t="lyrics"><span class="ck"></span><span class="lbl">Floating lyrics when this window is closed</span></div>
+    <div class="mi" data-t="lyrics"><span class="ck"></span><span class="lbl">Floating lyrics on the desktop</span></div>
+    <div class="mi" data-t="lyricBackdrop"><span class="ck"></span><span class="lbl">Dark backdrop behind floating lyrics</span></div>
+    <div class="mi" id="resetPos"><span class="ck"></span><span class="lbl">Put floating lyrics back in place</span></div>
     <div class="ms"></div>
     <div class="mh">Font</div><div id="mFonts"></div>
     <div class="ms"></div>
@@ -243,6 +245,7 @@
     <div class="mh">Brightness</div><div class="mr"><input type="range" data-n="idleBrightness" min="0.1" max="1" step="0.05"><span class="v"></span></div>
     <div class="mh" id="splitH">Color split</div><div class="mr" id="splitR"><input type="range" data-n="glowSplit" min="10" max="90" step="5"><span class="v"></span></div>
     <div class="mh">Reactivity</div><div class="mr"><input type="range" data-n="intensity" min="0.3" max="2" step="0.05"><span class="v"></span></div>
+    <div class="mh">Speed</div><div class="mr"><input type="range" data-n="speed" min="0.2" max="4" step="0.1"><span class="v"></span></div>
     <div class="ms"></div>
     <div class="mrow"><span>Override album color</span><div class="sw" data-k="albumColors" data-invert="1"></div></div>
     <div class="gcols" id="gcols"><label><input type="color" id="color1">Primary</label><label id="sec2"><input type="color" id="color2">Secondary</label></div>
@@ -455,6 +458,7 @@ $('gDisp').onchange = e => api.set({ glowDisplays: e.target.value });
 $('scale').oninput = e => { const v = +e.target.value; txt($('scaleV'), v + '%'); api.set({ lyricScale: v }); }; $('scaleR').onclick = () => api.set({ lyricScale: 100 });
 $('resetC').onclick = () => api.set({ resetColors: true });
 $('resetG').onclick = () => api.set({ resetGlow: true });
+$('resetPos').onclick = () => { api.set({ resetLyricPos: true }); toast('Floating lyrics moved back'); };
 $('closeFull').onclick = () => api.stage(WINDOWED);
 $('reBtn2').onclick = () => { api.reconnect(); toast('Reconnecting…'); };
 $('nMinus').onclick = () => api.set({ songNudge: (S.songNudge || 0) - 0.5 });
@@ -499,7 +503,7 @@ function endTour() { $('tour').classList.remove('on'); api.set({ onboarded: true
 $('tGo').onclick = () => { if (tStep >= TOUR.length - 1) endTour(); else { tStep++; renderTour(); } };
 $('tSkip').onclick = endTour; $('tourBtn').onclick = () => { openMenu(null); startTour(); };
 addEventListener('keydown', e => {   // the tour owns the keyboard while it is open
-  if (!tourOn()) return; e.stopImmediatePropagation();
+  if (!tourOn()) return; e.stopImmediatePropagation(); e.preventDefault();   // preventDefault: Enter on the focused Next button would click it a second time
   if (e.key === 'Escape') endTour(); else if (e.key === 'ArrowRight' || e.key === 'Enter') $('tGo').click(); else if (e.key === 'ArrowLeft' && tStep > 0) { tStep--; renderTour(); }
 }, true);
 

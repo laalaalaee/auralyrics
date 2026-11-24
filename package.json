@@ -23,6 +23,9 @@
   ],
   "license": "PolyForm-Noncommercial-1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win --publish never",
