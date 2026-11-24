@@ -9,7 +9,7 @@ Glowrim was renamed to Auralyrics in 2.0.0.
 - A "Check for updates" item in the tray menu, and an Updates row in Settings with a switch to turn the background check off.
 
 ### Changed
-- The lyrics are now a normal window you can move, resize and minimise, with the same toolbar and menus as full screen. The maximise button (or F11) goes to full screen, and Esc comes back to the window. The window remembers its size and position.
+- The lyrics are now a normal window you can move, resize, minimise and maximise, with the same toolbar and menus as full screen. The ⛶ button in the toolbar (or F11) goes to full screen, and Esc comes back to the window. The window remembers its size and position, and whether it was maximised.
 - Auto now also changes the style during a song, every 40 to 75 seconds, picking the same weighted way. The first change of each song never lands right after the song's own pick, and a style you pick by hand stays until the next song.
 - The little style-name pill ("✨ Branches") no longer pops up over the middle of the lyrics. It sits small in the top-left corner.
 - Auralyrics opens to that window instead of straight to full screen. If you liked the old behaviour, turn on "Open full screen when Auralyrics starts" in Settings.

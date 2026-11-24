@@ -41,7 +41,7 @@ const DEFAULTS = {
   lyricColors: { text: '#f2f2f2', hl: '#ff7a7a', sec: '#ffffff' },
   lyricOffset: 0, lyricLock: true, lyricBackdrop: false, lyricBounds: null,
   // full-screen lyrics (the main lyrics view)
-  keepAwake: true, stageDisplays: [], stageBg: 'art', stageClock: true, openFullOnLaunch: false, stageLyrics: true, stageBounds: null,
+  keepAwake: true, stageDisplays: [], stageBg: 'art', stageClock: true, openFullOnLaunch: false, stageLyrics: true, stageBounds: null, stageMax: false,
   glowSplit: 60,
   // general
   startup: false, onboarded: false, autoUpdateCheck: true
@@ -241,7 +241,8 @@ function updateLyricsVisibility() {
   if (!show && lyricsWin.isVisible()) lyricsWin.hide();
 }
 
-// ---------- The lyrics window: the main window. Move it, resize it, minimise it. Maximise (or F11) goes full screen. ----------
+// ---------- The lyrics window: the main window. Move, resize, minimise or maximise it like any window. ----------
+// Full screen is separate: the ⛶ toolbar button, F11, or Ctrl+Alt+L. Esc comes back to this window.
 function defaultHomeBounds() {
   const wa = screen.getPrimaryDisplay().workArea, width = Math.min(1100, wa.width - 80), height = Math.min(680, wa.height - 80);
   return { width, height, x: Math.round(wa.x + (wa.width - width) / 2), y: Math.round(wa.y + (wa.height - height) / 2) };
@@ -255,10 +256,14 @@ function openHome() {
     webPreferences: { preload, backgroundThrottling: false }
   });
   w.loadFile('stage.html', { query: { mode: 'window' } });
-  w.webContents.once('did-finish-load', () => { primeWindow(w); send(w, 'displays', displayList()); sendStatus(); if (alive(w)) { w.show(); w.focus(); } });
+  w.webContents.once('did-finish-load', () => {
+    primeWindow(w); send(w, 'displays', displayList()); sendStatus();
+    // opens maximised if it was last time. maximize() also shows the window; show() after it would restore it to normal size.
+    if (alive(w)) { if (settings.stageMax) w.maximize(); else w.show(); w.focus(); }
+  });
   ['show', 'hide', 'minimize', 'restore'].forEach(ev => w.on(ev, () => updateLyricsVisibility()));
-  // the maximise button means "make it big": go to real full screen, and come back to this window afterwards
-  w.on('maximize', () => { w.unmaximize(); openStage(); });
+  w.on('maximize', () => { settings.stageMax = true; save(); });
+  w.on('unmaximize', () => { settings.stageMax = false; save(); });
   let t; const remember = () => { clearTimeout(t); t = setTimeout(() => { if (alive(w) && !w.isMinimized() && !w.isFullScreen()) { settings.stageBounds = w.getNormalBounds(); save(); } }, 400); };
   w.on('moved', remember); w.on('resized', remember);
   w.on('closed', () => { if (stageWin === w) stageWin = null; updateLyricsVisibility(); refreshMenu(); });

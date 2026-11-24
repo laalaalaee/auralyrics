@@ -96,7 +96,7 @@ Animation modes: **Music Sync** (follows the beat), **Default** (a steady flow),
 
 ## The app
 
-One window does it all: the lyrics, a toolbar with Lyrics and Glow menus (styles, fonts, colours, size, glow), a status check, and settings. Drag it, resize it, minimise it, or maximise it for full screen. Auralyrics then lives in the system tray, so it stays out of your way.
+One window does it all: the lyrics, a toolbar with Lyrics and Glow menus (styles, fonts, colours, size, glow), a status check, and settings. Drag it, resize it, maximise it, or go full screen. Auralyrics then lives in the system tray, so it stays out of your way.
 
 <p align="center"><img src="docs/screenshots/window.png" alt="The Auralyrics window showing synced lyrics, with the toolbar and player" width="760"></p>
 
@@ -106,7 +106,7 @@ One window does it all: the lyrics, a toolbar with Lyrics and Glow menus (styles
 
 1. Download the latest release from the [Releases page](../../releases/latest): `Auralyrics-Setup-<version>.exe` to install, or `Auralyrics-<version>-portable.exe` to run without installing. Verify the download against `SHA256SUMS.txt` on the same page. Builds are not code-signed yet, so Windows SmartScreen may ask you to confirm ("More info" → "Run anyway").
 2. Play something in Spotify, Apple Music or a browser tab.
-3. Auralyrics opens as a normal window: drag it, resize it, minimise it. Click the **maximise** button (or press **F11**) for full-screen lyrics, and **Esc** to come back to the window. **Ctrl + Alt + L** toggles full screen from anywhere.
+3. Auralyrics opens as a normal window: drag it, resize it, maximise it. Click **⛶** in the toolbar (or press **F11**) for full-screen lyrics, and **Esc** to come back to the window. **Ctrl + Alt + L** toggles full screen from anywhere.
 
 Auralyrics lives in the system tray (bottom-right, `^`). The tray menu holds what you reach for mid-song: playback, style and Auto, desktop lyrics, text size, and which display glows.
 
